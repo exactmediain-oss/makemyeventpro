@@ -12,13 +12,17 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { useCategoryTheme } from "@/context/CategoryThemeContext";
-import api from "@/lib/api";
+import { useCategoryTheme, resolveTheme } from "@/context/CategoryThemeContext";
+import { useLocationCtx } from "@/context/LocationContext";
+import { Switch } from "@/components/ui/switch";
+import api, { fileUrl } from "@/lib/api";
 import { formatINR } from "@/lib/constants";
 
-function Filters({ maxPrice, setMaxPrice, minRating, setMinRating, verifiedOnly, setVerifiedOnly, featuredOnly, setFeaturedOnly }) {
+function Filters({ maxPrice, setMaxPrice, minRating, setMinRating, verifiedOnly, setVerifiedOnly, featuredOnly, setFeaturedOnly, dynFields = [], dyn = {}, setDyn, nearMe, setNearMe }) {
+  const setD = (k, v) => setDyn({ ...dyn, [k]: v });
   return (
     <div className="space-y-6">
+      <label className="flex items-center justify-between cursor-pointer"><span className="text-sm font-semibold">Serving my area first</span><Switch data-testid="filter-near-me" checked={nearMe} onCheckedChange={setNearMe} /></label>
       <div>
         <div className="flex justify-between text-sm font-semibold mb-2"><span>Max Price</span><span className="text-purple-600">{formatINR(maxPrice)}</span></div>
         <Slider data-testid="filter-price-slider" value={[maxPrice]} min={10000} max={500000} step={10000} onValueChange={(v) => setMaxPrice(v[0])} />
@@ -42,6 +46,16 @@ function Filters({ maxPrice, setMaxPrice, minRating, setMinRating, verifiedOnly,
         <Checkbox data-testid="filter-featured" checked={featuredOnly} onCheckedChange={setFeaturedOnly} />
         <span className="text-sm font-medium">Featured only</span>
       </label>
+      {dynFields.length > 0 && <div className="pt-2 border-t border-border space-y-3" data-testid="dynamic-filters">
+        <div className="text-sm font-semibold">{"More filters"}</div>
+        {dynFields.map((f) => (
+          <div key={f.key} data-testid={`dyn-filter-${f.key}`}>
+            {["boolean","checkbox"].includes(f.type) ? <label className="flex items-center gap-2.5 cursor-pointer"><Checkbox checked={dyn[f.key] === "true"} onCheckedChange={(v) => setD(f.key, v ? "true" : "")} /><span className="text-sm">{f.label}</span></label>
+            : ["select","multiselect"].includes(f.type) ? <div><div className="text-xs font-medium mb-1">{f.label}</div><div className="flex flex-wrap gap-1">{f.options.map((o) => <button key={o} onClick={() => setD(f.key, dyn[f.key] === o ? "" : o)} className={`px-2 py-0.5 rounded-full text-[11px] border ${dyn[f.key] === o ? "bg-purple-600 text-white border-purple-600" : "border-border"}`}>{o}</button>)}</div></div>
+            : ["number","currency"].includes(f.type) ? <div><div className="text-xs font-medium mb-1">{f.label} {f.unit ? `(${f.unit})` : ""}</div><div className="flex gap-1"><input type="number" placeholder="Min" value={dyn[f.key+"_min"] || ""} onChange={(e) => setD(f.key+"_min", e.target.value)} className="w-full rounded-lg border border-border bg-background px-2 py-1 text-xs" /><input type="number" placeholder="Max" value={dyn[f.key+"_max"] || ""} onChange={(e) => setD(f.key+"_max", e.target.value)} className="w-full rounded-lg border border-border bg-background px-2 py-1 text-xs" /></div></div>
+            : null}
+          </div>))}
+      </div>}
     </div>
   );
 }
@@ -52,6 +66,11 @@ export default function VendorList() {
   const q = sp.get("q") || "";
   const eventType = sp.get("event_type") || "";
   const { applyTheme, resetTheme } = useCategoryTheme();
+  const { loc } = useLocationCtx();
+  const [dynFields, setDynFields] = useState([]);
+  const [dyn, setDyn] = useState({});
+  const [nearMe, setNearMe] = useState(true);
+  const [total, setTotal] = useState(0);
 
   const [categories, setCategories] = useState([]);
   const [vendors, setVendors] = useState([]);
@@ -66,8 +85,10 @@ export default function VendorList() {
   const [compareOpen, setCompareOpen] = useState(false);
 
   const activeCat = categories.find((c) => c.slug === slug);
+  const heroCat = activeCat || (!q && !eventType ? categories.find((c) => c.is_all) : null);
 
-  useEffect(() => { api.get("/categories").then((r) => setCategories(r.data)); }, []);
+  useEffect(() => { api.get("/categories?include_all=true").then((r) => setCategories(r.data)); }, []);
+  useEffect(() => { setDyn({}); if (slug) api.get(`/fields?category=${slug}&scope=filters`).then((r) => setDynFields(r.data)); else setDynFields([]); }, [slug]);
   useEffect(() => {
     if (activeCat) applyTheme(activeCat.theme, activeCat.slug); else resetTheme();
   }, [activeCat, applyTheme, resetTheme]);
@@ -75,7 +96,10 @@ export default function VendorList() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ city: "Hyderabad", sort, limit: "48" });
+      const params = new URLSearchParams({ city: loc.city || "Hyderabad", sort, limit: "48" });
+      if (nearMe && loc.area) params.set("area", loc.area);
+      if (nearMe && loc.lat) { params.set("lat", loc.lat); params.set("lng", loc.lng); }
+      Object.entries(dyn).forEach(([k, v]) => v && params.set(`f_${k}`, v));
       if (slug) params.set("category", slug);
       if (q) params.set("q", q);
       if (eventType) params.set("event_type", eventType);
@@ -84,9 +108,9 @@ export default function VendorList() {
       if (verifiedOnly) params.set("verified", "true");
       if (featuredOnly) params.set("featured", "true");
       const { data } = await api.get(`/vendors?${params.toString()}`);
-      setVendors(data.items);
+      setVendors(data.items); setTotal(data.total);
     } finally { setLoading(false); }
-  }, [slug, q, eventType, sort, maxPrice, minRating, verifiedOnly, featuredOnly]);
+  }, [slug, q, eventType, sort, maxPrice, minRating, verifiedOnly, featuredOnly, dyn, nearMe, loc.area, loc.lat, loc.lng, loc.city]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -102,14 +126,14 @@ export default function VendorList() {
     <Layout>
       <CategoryBar categories={categories} active={slug || "all"} />
 
-      {activeCat && (
-        <div className="relative h-40 sm:h-52 overflow-hidden" data-testid="category-hero">
-          <img src={activeCat.banner} alt={activeCat.name} className="w-full h-full object-cover" />
-          <div className="absolute inset-0" style={{ background: `linear-gradient(to right, ${activeCat.theme?.accent}ee, ${activeCat.theme?.accent}55)` }} />
+      {heroCat && (
+        <div className="relative h-40 sm:h-52 overflow-hidden" data-testid="category-hero" data-category={heroCat.slug}>
+          <img src={fileUrl(heroCat.banner)} alt={heroCat.name} className="w-full h-full object-cover" data-testid="category-hero-image" />
+          <div className="absolute inset-0" style={{ background: `linear-gradient(to right, ${resolveTheme(heroCat.theme).accent}, ${resolveTheme(heroCat.theme).secondary})`, opacity: resolveTheme(heroCat.theme).overlay }} />
           <div className="absolute inset-0 flex items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-white">
-              <h1 className="font-display font-extrabold text-2xl sm:text-4xl">{activeCat.name} in Hyderabad</h1>
-              <p className="text-white/85 mt-1 text-sm sm:text-base max-w-lg">{activeCat.description}</p>
+              <h1 className="font-display font-extrabold text-2xl sm:text-4xl" data-testid="category-hero-title">{heroCat.banner_title || `${heroCat.name} in ${loc.area || loc.city}`}</h1>
+              <p className="text-white/85 mt-1 text-sm sm:text-base max-w-lg" data-testid="category-hero-subtitle">{heroCat.banner_subtitle || heroCat.description}</p>
             </div>
           </div>
         </div>
@@ -118,8 +142,8 @@ export default function VendorList() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between gap-3 mb-5">
           <div>
-            <h2 className="font-display font-bold text-lg sm:text-xl">{title}</h2>
-            <p className="text-sm text-muted-foreground">{loading ? "Loading..." : `${vendors.length} vendors found`}</p>
+            <h2 className="font-display font-bold text-lg sm:text-xl" style={{ color: "var(--cat-heading)" }} data-testid="listing-heading">{title}</h2>
+            <p className="text-sm text-muted-foreground">{loading ? "Loading..." : `${total} vendors · ${nearMe && loc.area ? `near ${loc.area}` : loc.city}`}</p>
           </div>
           <div className="flex items-center gap-2">
             <Sheet>
@@ -130,7 +154,7 @@ export default function VendorList() {
               </SheetTrigger>
               <SheetContent className="bg-white dark:bg-slate-900 w-80">
                 <SheetHeader><SheetTitle>Filters</SheetTitle></SheetHeader>
-                <div className="mt-6"><Filters {...{ maxPrice, setMaxPrice, minRating, setMinRating, verifiedOnly, setVerifiedOnly, featuredOnly, setFeaturedOnly }} /></div>
+                <div className="mt-6"><Filters {...{ maxPrice, setMaxPrice, minRating, setMinRating, verifiedOnly, setVerifiedOnly, featuredOnly, setFeaturedOnly, dynFields, dyn, setDyn, nearMe, setNearMe }} /></div>
               </SheetContent>
             </Sheet>
             <Select value={sort} onValueChange={setSort}>
@@ -141,6 +165,7 @@ export default function VendorList() {
                 <SelectItem value="price_low">Price: Low to High</SelectItem>
                 <SelectItem value="price_high">Price: High to Low</SelectItem>
                 <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="distance">Nearest</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -150,7 +175,7 @@ export default function VendorList() {
           <aside className="hidden lg:block w-64 shrink-0">
             <div className="sticky top-40 rounded-2xl border border-border bg-card p-5">
               <h3 className="font-display font-bold mb-5 flex items-center gap-2"><SlidersHorizontal className="h-4 w-4" /> Filters</h3>
-              <Filters {...{ maxPrice, setMaxPrice, minRating, setMinRating, verifiedOnly, setVerifiedOnly, featuredOnly, setFeaturedOnly }} />
+              <Filters {...{ maxPrice, setMaxPrice, minRating, setMinRating, verifiedOnly, setVerifiedOnly, featuredOnly, setFeaturedOnly, dynFields, dyn, setDyn, nearMe, setNearMe }} />
             </div>
           </aside>
 

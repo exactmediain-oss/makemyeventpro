@@ -90,3 +90,7 @@ h1, h2, h3, h4, .font-display { font-family: 'Outfit', system-ui, sans-serif; }
 }
 
 ::selection { background: rgba(139,92,246,0.28); }
+
+/* Category theme hooks — values set by CategoryThemeContext */
+.cat-btn { background: var(--cat-button, linear-gradient(135deg,#7C3AED,#EC4899)); color: #fff; }
+.cat-heading { color: var(--cat-heading, inherit); }

@@ -12,9 +12,9 @@ import { Loader2, PartyPopper } from "lucide-react";
 
 const EVENT_TYPES = ["Wedding", "Engagement", "Reception", "Birthday", "Anniversary", "Haldi", "Mehendi", "Sangeet", "Corporate Event", "Party"];
 
-export default function EnquiryDialog({ open, onOpenChange, vendor }) {
+export default function EnquiryDialog({ open, onOpenChange, vendor, packageId }) {
   const { user, setAuthOpen } = useAuth();
-  const [form, setForm] = useState({ event_type: "Wedding", event_date: "", guests: "", budget: "", message: "" });
+  const [form, setForm] = useState({ event_type: "Wedding", event_date: "", event_time: "", location: "", guests: "", budget: "", message: "", package_id: packageId || "" });
   const [loading, setLoading] = useState(false);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -30,11 +30,14 @@ export default function EnquiryDialog({ open, onOpenChange, vendor }) {
         guests: form.guests ? Number(form.guests) : null,
         budget: form.budget ? Number(form.budget) : null,
         message: form.message,
+        event_time: form.event_time || null,
+        location: form.location || null,
+        package_id: form.package_id || null,
         services: [],
       });
       toast.success("Enquiry sent!", { description: `${vendor.business_name} will respond shortly.` });
       onOpenChange(false);
-      setForm({ event_type: "Wedding", event_date: "", guests: "", budget: "", message: "" });
+      setForm({ event_type: "Wedding", event_date: "", event_time: "", location: "", guests: "", budget: "", message: "", package_id: "" });
     } catch (e) {
       toast.error(e.response?.data?.detail || "Could not send enquiry");
     } finally { setLoading(false); }
@@ -73,6 +76,17 @@ export default function EnquiryDialog({ open, onOpenChange, vendor }) {
               <Label>Budget (₹)</Label>
               <Input data-testid="enquiry-budget" type="number" value={form.budget} onChange={(e) => set("budget", e.target.value)} placeholder="1000000" className="rounded-xl" />
             </div>
+          </div>
+          {vendor.packages?.length > 0 && <div className="space-y-1.5">
+            <Label>Service / package</Label>
+            <Select value={form.package_id || "none"} onValueChange={(v) => set("package_id", v === "none" ? "" : v)}>
+              <SelectTrigger data-testid="enquiry-package" className="rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-white dark:bg-slate-900 rounded-xl"><SelectItem value="none">Custom requirement</SelectItem>{vendor.packages.map((p) => <SelectItem key={p.id} value={p.id}>{p.name} · ₹{Number(p.price).toLocaleString("en-IN")}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Event time</Label><Input data-testid="enquiry-time" type="time" value={form.event_time} onChange={(e) => set("event_time", e.target.value)} className="rounded-xl" /></div>
+            <div className="space-y-1.5"><Label>Event location</Label><Input data-testid="enquiry-location" value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="Area / venue" className="rounded-xl" /></div>
           </div>
           <div className="space-y-1.5">
             <Label>Message</Label>

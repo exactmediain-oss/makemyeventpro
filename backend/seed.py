@@ -242,6 +242,10 @@ async def seed_database(db):
             "status": "submitted", "is_demo": True, "created_at": now_iso(),
         })
 
+    await seed_locations(db)
+    await seed_fields(db)
+    await seed_settings(db)
+
     if await db.banners.count_documents({}) == 0:
         banners = [
             ("Top Wedding Venues Near You", "Banjara Hills • Jubilee Hills • Gachibowli", "Explore Venues",
@@ -259,3 +263,131 @@ async def seed_database(db):
                 "category_slug": cat, "city": "Hyderabad", "area": None, "link": f"/category/{cat}",
                 "priority": pri, "status": "active", "target_platform": "all", "created_at": now_iso(),
             })
+
+
+# ---- Location hierarchy: Country → State → City → Area → Pincode (admin-extensible) ----
+AREA_GEO = {"Banjara Hills": (17.4156, 78.4347, "500034"), "Jubilee Hills": (17.4325, 78.4073, "500033"),
+            "Gachibowli": (17.4401, 78.3489, "500032"), "Madhapur": (17.4483, 78.3915, "500081"),
+            "Hitec City": (17.4435, 78.3772, "500081"), "Kondapur": (17.4622, 78.3568, "500084"),
+            "Kukatpally": (17.4849, 78.4138, "500072"), "Secunderabad": (17.4399, 78.4983, "500003"),
+            "Begumpet": (17.4440, 78.4676, "500016"), "Malkajgiri": (17.4520, 78.5260, "500047"),
+            "Miyapur": (17.4969, 78.3715, "500049"), "Financial District": (17.4144, 78.3390, "500032"),
+            "Uppal": (17.4058, 78.5591, "500039"), "LB Nagar": (17.3457, 78.5522, "500074"),
+            "Dilsukhnagar": (17.3688, 78.5247, "500060"), "Ameerpet": (17.4375, 78.4483, "500016"),
+            "Tarnaka": (17.4270, 78.5320, "500017"), "ECIL": (17.4735, 78.5673, "500062")}
+
+
+async def seed_locations(db):
+    if await db.locations.count_documents({}) > 0:
+        return
+    def loc(t, name, parent, **kw):
+        return {"id": nid(), "type": t, "name": name, "slug": slugify(name), "parent_id": parent, "active": True,
+                "order": kw.pop("order", 100), "lat": kw.pop("lat", None), "lng": kw.pop("lng", None),
+                "pincode": kw.pop("pincode", None), "is_launch": kw.pop("is_launch", False), "created_at": now_iso()}
+    india = loc("country", "India", None, order=1)
+    ts = loc("state", "Telangana", india["id"], order=1)
+    hyd = loc("city", "Hyderabad", ts["id"], order=1, lat=17.385, lng=78.4867, is_launch=True)
+    docs = [india, ts, hyd]
+    for name, (lat, lng, pin) in AREA_GEO.items():
+        a = loc("area", name, hyd["id"], lat=lat, lng=lng, pincode=pin)
+        docs.append(a)
+        docs.append(loc("pincode", pin, a["id"], pincode=pin))
+    await db.locations.insert_many(docs)
+    # backfill vendor geo + service areas from area names
+    async for v in db.vendors.find({}, {"_id": 0, "id": 1, "area": 1}):
+        g = AREA_GEO.get(v.get("area"))
+        if g:
+            near = sorted(AREA_GEO, key=lambda n: (AREA_GEO[n][0]-g[0])**2 + (AREA_GEO[n][1]-g[1])**2)[:4]
+            await db.vendors.update_one({"id": v["id"]}, {"$set": {"geo": {"type": "Point", "coordinates": [g[1], g[0]]},
+                                                                   "pincode": g[2], "service_areas": near, "state": "Telangana"}})
+
+
+# ---- Dynamic field definitions (admin-editable examples) ----
+def F(label, type_, **kw):
+    return {"label": label, "type": type_, **kw}
+
+
+FIELD_SEED = {
+    "venues": [F("Minimum capacity", "number", unit="guests", required=True, filterable=True, featured=True, group="Capacity"),
+               F("Maximum capacity", "number", unit="guests", required=True, filterable=True, featured=True, group="Capacity"),
+               F("Indoor", "boolean", filterable=True, group="Space"), F("Outdoor", "boolean", filterable=True, group="Space"),
+               F("AC", "boolean", filterable=True, group="Facilities"), F("Parking capacity", "number", unit="cars", group="Facilities"),
+               F("Rooms", "number", unit="rooms", group="Facilities"), F("Bridal room", "boolean", group="Facilities"),
+               F("Catering allowed", "boolean", group="Policies"), F("Outside catering allowed", "boolean", filterable=True, group="Policies"),
+               F("Decoration allowed", "boolean", group="Policies"), F("Outside decoration allowed", "boolean", group="Policies"),
+               F("Alcohol permitted", "boolean", filterable=True, group="Policies"), F("Generator", "boolean", group="Facilities"),
+               F("Stage", "boolean", group="Facilities"), F("Sound system", "boolean", group="Facilities"),
+               F("Dining area", "select", options=["Indoor", "Outdoor", "Both"], group="Space"),
+               F("Starting rental price", "currency", unit="₹", featured=True, group="Pricing")],
+    "photography": [F("Wedding photography", "boolean", filterable=True), F("Candid photography", "boolean", filterable=True),
+                    F("Traditional photography", "boolean"), F("Pre-wedding", "boolean", filterable=True), F("Drone", "boolean", filterable=True, featured=True),
+                    F("Cinematic video", "boolean", filterable=True), F("Albums", "boolean"),
+                    F("Number of photographers", "number", featured=True), F("Number of videographers", "number"),
+                    F("Delivery time", "select", options=["1-2 weeks", "2-4 weeks", "1-2 months", "2+ months"], featured=True),
+                    F("Travel availability", "select", options=["Hyderabad only", "Telangana", "Pan India", "International"], filterable=True),
+                    F("Starting package price", "currency", unit="₹", featured=True)],
+    "catering": [F("Cuisine", "multiselect", options=["North Indian", "South Indian", "Hyderabadi", "Chinese", "Continental", "Italian", "Mughlai"], filterable=True, featured=True),
+                 F("Vegetarian", "boolean", filterable=True), F("Non-vegetarian", "boolean", filterable=True), F("Jain", "boolean", filterable=True),
+                 F("Live counters", "boolean", filterable=True), F("Minimum order", "number", unit="plates", featured=True),
+                 F("Per plate price", "currency", unit="₹", featured=True, filterable=True), F("Staff included", "boolean"), F("Crockery included", "boolean")],
+    "decoration": [F("Stage decoration", "boolean", filterable=True), F("Floral decoration", "boolean", filterable=True), F("Balloon decoration", "boolean"),
+                   F("Mandap decoration", "boolean", filterable=True), F("Lighting", "boolean"), F("Theme decoration", "boolean"),
+                   F("Reception decoration", "boolean"), F("Birthday decoration", "boolean"), F("Corporate decoration", "boolean"),
+                   F("Starting price", "currency", unit="₹", featured=True)],
+}
+
+SAMPLE_VALUES = {
+    "venues": {"minimum_capacity": 200, "maximum_capacity": 1000, "indoor": True, "outdoor": True, "ac": True, "parking_capacity": 150,
+               "rooms": 4, "bridal_room": True, "catering_allowed": True, "outside_catering_allowed": True, "decoration_allowed": True,
+               "outside_decoration_allowed": False, "alcohol_permitted": True, "generator": True, "stage": True, "sound_system": True,
+               "dining_area": "Both", "starting_rental_price": 90000},
+    "photography": {"wedding_photography": True, "candid_photography": True, "traditional_photography": True, "pre_wedding": True, "drone": True,
+                    "cinematic_video": True, "albums": True, "number_of_photographers": 2, "number_of_videographers": 2,
+                    "delivery_time": "2-4 weeks", "travel_availability": "Pan India", "starting_package_price": 45000},
+    "catering": {"cuisine": ["North Indian", "South Indian", "Hyderabadi"], "vegetarian": True, "non_vegetarian": True, "jain": False,
+                 "live_counters": True, "minimum_order": 100, "per_plate_price": 850, "staff_included": True, "crockery_included": True},
+    "decoration": {"stage_decoration": True, "floral_decoration": True, "balloon_decoration": False, "mandap_decoration": True, "lighting": True,
+                   "theme_decoration": True, "reception_decoration": True, "birthday_decoration": True, "corporate_decoration": True, "starting_price": 40000},
+}
+
+
+async def seed_fields(db):
+    if await db.field_definitions.count_documents({}) > 0:
+        return
+    for cat, fields in FIELD_SEED.items():
+        for i, f in enumerate(fields):
+            await db.field_definitions.insert_one({
+                "id": nid(), "category_slug": cat, "subcategory": None, "key": slugify(f["label"]).replace("-", "_"),
+                "label": f["label"], "type": f["type"], "options": f.get("options", []), "unit": f.get("unit"),
+                "help_text": None, "default": None, "required": f.get("required", False), "order": (i + 1) * 10,
+                "customer_visible": True, "vendor_only": False, "filterable": f.get("filterable", False),
+                "searchable": f["type"] in ("select", "multiselect"), "featured": f.get("featured", False),
+                "min": None, "max": None, "group": f.get("group", "Details"), "active": True, "created_at": now_iso()})
+    for cat, vals in SAMPLE_VALUES.items():
+        await db.vendors.update_many({"category_slug": cat, "is_demo": True}, {"$set": {"custom_fields": vals}})
+
+
+async def seed_settings(db):
+    if await db.settings.count_documents({}) == 0:
+        for k, v in [("brand_name", "MakeMyEventPro"), ("commission_percent", 10), ("support_email", "exactmedia.in@gmail.com"),
+                     ("support_phone", "+91 99999 00001"), ("logo_url", None), ("splash_url", None),
+                     ("default_cancellation_policy", "Free cancellation up to 30 days before the event. 50% refund of advance between 30 and 7 days. No refund within 7 days."),
+                     ("vendor_terms", "By submitting, you confirm the information is accurate, you hold valid licences for your services, and you agree to MakeMyEventPro's commission and conduct policies.")]:
+            await db.settings.insert_one({"key": k, "value": v, "updated_at": now_iso()})
+    if await db.plans.count_documents({}) == 0:
+        for i, (n, p, feats, leads, slots) in enumerate([
+                ("Free", 0, ["Basic listing", "5 leads / month", "Standard support"], 5, 0),
+                ("Growth", 1999, ["Unlimited leads", "Verified badge priority", "Analytics", "WhatsApp alerts"], None, 0),
+                ("Premium", 4999, ["Everything in Growth", "Featured placement", "2 ad slots", "Dedicated manager"], None, 2)]):
+            await db.plans.insert_one({"id": nid(), "slug": slugify(n), "name": n, "price_monthly": p, "features": feats, "lead_limit": leads,
+                                       "featured_slots": slots, "commission_percent": None, "active": True, "order": i, "created_at": now_iso()})
+    if await db.coupons.count_documents({}) == 0:
+        await db.coupons.insert_one({"id": nid(), "code": "WELCOME10", "title": "10% off your first booking", "type": "percent", "value": 10,
+                                     "max_discount": 5000, "min_amount": 5000, "category_slug": None, "max_uses": 1000, "uses": 0,
+                                     "expires_at": None, "active": True, "created_at": now_iso()})
+    if await db.pages.count_documents({}) == 0:
+        for s, t, c in [("about", "About MakeMyEventPro", "MakeMyEventPro is Hyderabad's premium event vendor marketplace."),
+                        ("terms", "Terms of Service", "Standard marketplace terms apply."),
+                        ("privacy", "Privacy Policy", "We protect your data and never share contact details without consent."),
+                        ("vendor-terms", "Vendor Agreement", "Vendors agree to platform commission, conduct and verification rules.")]:
+            await db.pages.insert_one({"id": nid(), "slug": s, "title": t, "content": c, "published": True, "updated_at": now_iso()})

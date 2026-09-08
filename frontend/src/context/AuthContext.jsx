@@ -40,11 +40,14 @@ export const AuthProvider = ({ children }) => {
     setAuthOpen(false);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try { await api.post("/auth/logout"); } catch (e) {}
     localStorage.removeItem("mmep_token");
     setUser(null);
     setFavorites([]);
   };
+
+  const refreshUser = async () => { try { const { data } = await api.get("/auth/me"); setUser(data); } catch (e) {} };
 
   const toggleFavorite = async (vendorId) => {
     if (!user) { setAuthOpen(true); return; }
@@ -54,7 +57,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, authOpen, setAuthOpen, favorites, toggleFavorite, loadFavorites }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser, authOpen, setAuthOpen, favorites, toggleFavorite, loadFavorites }}>
       {children}
     </AuthContext.Provider>
   );

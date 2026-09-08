@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Star, MapPin, BadgeCheck, Heart, Share2, Phone, MessageCircle, Clock, ShieldCheck,
-  Award, ChevronLeft, Instagram, Facebook, Youtube, Globe, Check,
+  Award, ChevronLeft, Instagram, Facebook, Youtube, Globe, Check, Play, Twitter, Linkedin,
 } from "lucide-react";
 import Layout from "@/components/Layout";
 import VendorCard from "@/components/VendorCard";
@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
-import api from "@/lib/api";
+import api, { fileUrl } from "@/lib/api";
+import { DynamicFieldsDisplay } from "@/components/DynamicFields";
 import { formatINR } from "@/lib/constants";
 import { toast } from "sonner";
 
@@ -24,6 +25,9 @@ export default function VendorProfile() {
   const [loading, setLoading] = useState(true);
   const [activeImg, setActiveImg] = useState(0);
   const [enquire, setEnquire] = useState(false);
+  const [sp] = useSearchParams();
+  const [pkg, setPkg] = useState(null);
+  useEffect(() => { if (sp.get("book") && data) setEnquire(true); }, [sp, data]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -48,7 +52,7 @@ export default function VendorProfile() {
         {/* Gallery */}
         <div className="grid md:grid-cols-[1.6fr_1fr] gap-3" data-testid="vendor-gallery">
           <div className="relative rounded-3xl overflow-hidden aspect-[16/10] md:aspect-auto">
-            <img src={v.gallery?.[activeImg] || v.cover} alt={v.business_name} className="w-full h-full object-cover" />
+            <img src={fileUrl(v.gallery?.[activeImg] || v.cover)} alt={v.business_name} className="w-full h-full object-cover" />
             <div className="absolute top-4 left-4 flex gap-2">
               {v.featured && <span className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold">FEATURED</span>}
               {v.verified && <span className="px-3 py-1 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center gap-1"><BadgeCheck className="h-3.5 w-3.5" /> VERIFIED</span>}
@@ -58,7 +62,7 @@ export default function VendorProfile() {
             {(v.gallery || []).slice(0, 4).map((img, i) => (
               <button key={i} onClick={() => setActiveImg(i)}
                 className={`rounded-2xl overflow-hidden aspect-square ${activeImg === i ? "ring-2 ring-purple-500" : ""}`}>
-                <img src={img} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                <img src={fileUrl(img)} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
               </button>
             ))}
           </div>
@@ -72,7 +76,7 @@ export default function VendorProfile() {
             </h1>
             <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1 text-emerald-600 font-bold"><Star className="h-4 w-4 fill-emerald-500 text-emerald-500" /> {v.rating} ({v.review_count})</span>
-              <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {v.area}, Hyderabad</span>
+              <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {v.area}, {v.city}{v.service_areas?.length ? ` · serves ${v.service_areas.slice(0,3).join(", ")}` : ""}</span>
               <span className="flex items-center gap-1"><Award className="h-4 w-4" /> {v.years} yrs experience</span>
               <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> Responds {v.response_time}</span>
             </div>
@@ -97,11 +101,14 @@ export default function VendorProfile() {
                 <TabsTrigger value="packages" data-testid="tab-packages" className="rounded-lg">Packages</TabsTrigger>
                 <TabsTrigger value="services" data-testid="tab-services" className="rounded-lg">Services</TabsTrigger>
                 <TabsTrigger value="amenities" data-testid="tab-amenities" className="rounded-lg">Amenities</TabsTrigger>
+                <TabsTrigger value="details" data-testid="tab-details" className="rounded-lg">Details</TabsTrigger>
+                {v.videos?.length > 0 && <TabsTrigger value="videos" data-testid="tab-videos" className="rounded-lg">Videos</TabsTrigger>}
                 <TabsTrigger value="reviews" data-testid="tab-reviews" className="rounded-lg">Reviews</TabsTrigger>
               </TabsList>
 
               <TabsContent value="about" className="pt-5">
                 <p className="text-muted-foreground leading-relaxed">{v.description}</p>
+                {data.fields?.length > 0 && <div className="mt-4"><DynamicFieldsDisplay fields={data.fields} values={v.custom_fields || {}} featuredOnly /></div>}
                 <div className="flex flex-wrap gap-2 mt-4">
                   {v.subcategories?.map((s) => <span key={s} className="px-3 py-1 rounded-full bg-muted text-sm font-medium">{s}</span>)}
                 </div>
@@ -109,16 +116,20 @@ export default function VendorProfile() {
                   {social.instagram && <a href={social.instagram} target="_blank" rel="noreferrer" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-pink-100 hover:text-pink-600"><Instagram className="h-5 w-5" /></a>}
                   {social.facebook && <a href={social.facebook} target="_blank" rel="noreferrer" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-blue-100 hover:text-blue-600"><Facebook className="h-5 w-5" /></a>}
                   {social.youtube && <a href={social.youtube} target="_blank" rel="noreferrer" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-red-100 hover:text-red-600"><Youtube className="h-5 w-5" /></a>}
-                  {social.website && <a href={social.website} target="_blank" rel="noreferrer" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-purple-100 hover:text-purple-600"><Globe className="h-5 w-5" /></a>}
+                  {social.twitter && <a href={social.twitter} target="_blank" rel="noreferrer" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-sky-100 hover:text-sky-600"><Twitter className="h-5 w-5" /></a>}
+                  {social.linkedin && <a href={social.linkedin} target="_blank" rel="noreferrer" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-blue-100 hover:text-blue-700"><Linkedin className="h-5 w-5" /></a>}
+                  {social.whatsapp && <a href={`https://wa.me/${social.whatsapp}`} target="_blank" rel="noreferrer" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-emerald-100 hover:text-emerald-600"><MessageCircle className="h-5 w-5" /></a>}
+                  {(social.website || v.website) && <a href={social.website || v.website} target="_blank" rel="noreferrer" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-purple-100 hover:text-purple-600"><Globe className="h-5 w-5" /></a>}
                 </div>
               </TabsContent>
 
               <TabsContent value="packages" className="pt-5 space-y-4">
                 {v.packages?.length ? v.packages.map((p) => (
                   <div key={p.id} className="rounded-2xl border border-border p-5 hover:border-purple-300 transition-colors" data-testid={`package-${p.id}`}>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <h4 className="font-display font-bold text-lg">{p.name}</h4>
-                      <span className="font-display font-extrabold text-xl text-purple-600">{formatINR(p.price)}</span>
+                      <div className="flex items-center gap-2"><span className="font-display font-extrabold text-xl text-purple-600">{formatINR(p.price)}</span>
+                        <Button data-testid={`book-package-${p.id}`} size="sm" className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-500" onClick={() => { setPkg(p.id); setEnquire(true); }}>Book</Button></div>
                     </div>
                     <ul className="mt-3 grid sm:grid-cols-2 gap-2">
                       {p.includes.map((inc) => <li key={inc} className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-emerald-500 shrink-0" /> {inc}</li>)}
@@ -146,6 +157,12 @@ export default function VendorProfile() {
                 </div>
               </TabsContent>
 
+              <TabsContent value="details" className="pt-5">
+                {data.fields?.length ? <DynamicFieldsDisplay fields={data.fields} values={v.custom_fields || {}} /> : <p className="text-muted-foreground">No additional details.</p>}
+              </TabsContent>
+              <TabsContent value="videos" className="pt-5 grid sm:grid-cols-2 gap-4">
+                {(v.videos || []).map((vid) => <video key={vid} controls src={fileUrl(vid)} className="rounded-2xl w-full bg-black aspect-video" />)}
+              </TabsContent>
               <TabsContent value="reviews" className="pt-5 space-y-4" data-testid="reviews-list">
                 {data.reviews.length ? data.reviews.map((r) => (
                   <div key={r.id} className="rounded-2xl border border-border p-4">
@@ -154,6 +171,8 @@ export default function VendorProfile() {
                       <span className="flex items-center gap-1 text-emerald-600 text-sm font-bold"><Star className="h-3.5 w-3.5 fill-emerald-500 text-emerald-500" /> {r.rating}</span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1.5">{r.text}</p>
+                    {r.verified_booking && <span className="text-[10px] text-emerald-600 font-bold">VERIFIED BOOKING</span>}
+                    {r.response && <p className="text-xs mt-2 pl-3 border-l-2 border-purple-300"><b>Vendor:</b> {r.response}</p>}
                   </div>
                 )) : <p className="text-muted-foreground">No reviews yet.</p>}
               </TabsContent>
@@ -177,9 +196,13 @@ export default function VendorProfile() {
                 <span className="text-sm font-medium text-muted-foreground"> / {v.price_unit.replace("per ", "")}</span>
               </div>
               <div className="mt-2 flex items-center gap-2 text-sm text-emerald-600"><ShieldCheck className="h-4 w-4" /> {v.response_rate}% response rate</div>
-              <Button data-testid="profile-enquire-btn" onClick={() => setEnquire(true)}
+              <Button data-testid="profile-enquire-btn" onClick={() => { setPkg(null); setEnquire(true); }}
                 className="w-full mt-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 hover:opacity-90 h-12 text-base font-semibold">
                 Send Enquiry
+              </Button>
+              <Button data-testid="profile-book-btn" variant="outline" onClick={() => { setPkg(v.packages?.[0]?.id || null); setEnquire(true); }}
+                className="w-full mt-2 rounded-xl border-purple-300 text-purple-600 h-11 font-semibold">
+                Book Now · select date & package
               </Button>
               <div className="grid grid-cols-2 gap-2 mt-2">
                 <Button data-testid="profile-call-btn" variant="outline" className="rounded-xl" onClick={() => toast.info("Contact unlocked after enquiry")}>
@@ -200,7 +223,7 @@ export default function VendorProfile() {
         </div>
       </div>
 
-      <EnquiryDialog open={enquire} onOpenChange={setEnquire} vendor={v} />
+      <EnquiryDialog key={pkg || "none"} open={enquire} onOpenChange={setEnquire} vendor={v} packageId={pkg} />
     </Layout>
   );
 }

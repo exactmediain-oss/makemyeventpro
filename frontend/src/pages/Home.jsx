@@ -52,7 +52,7 @@ export default function Home() {
     (async () => {
       try {
         const [c, e, b, v] = await Promise.all([
-          api.get("/categories"),
+          api.get("/categories?include_all=true"),
           api.get("/event-types"),
           api.get("/banners?city=Hyderabad"),
           api.get("/vendors?city=Hyderabad&limit=48"),
@@ -83,7 +83,7 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-testid="popular-categories">
         <h2 className="font-display font-bold text-xl sm:text-2xl mb-5">Popular Categories</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {categories.slice(0, 10).map((c, i) => (
+          {categories.filter((c) => !c.is_all).slice(0, 10).map((c, i) => (
             <motion.button key={c.slug} data-testid={`category-tile-${c.slug}`}
               initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.04 }}
               onClick={() => navigate(`/category/${c.slug}`)}
