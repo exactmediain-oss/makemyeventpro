@@ -15,6 +15,7 @@ export default function AuthDialog() {
   const { authOpen, setAuthOpen, login } = useAuth();
   const [cfg, setCfg] = useState(null);
   const [step, setStep] = useState("phone");
+  const [mode, setMode] = useState("login");
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -31,6 +32,7 @@ export default function AuthDialog() {
 
   const sendOtp = async () => {
     if (!/^\d{10}$/.test(phone)) { toast.error("Enter a valid 10-digit mobile number"); return; }
+    if (mode === "signup" && name.trim().length < 2) { toast.error("Please enter your name to create an account"); return; }
     setLoading(true);
     try {
       if (useFirebase) {
@@ -74,14 +76,18 @@ export default function AuthDialog() {
         <div className="bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500 p-6 text-white">
           <img src={BRAND_LOGO} alt="MakeMyEventPro" className="h-12 w-12 rounded-2xl shadow-lg" />
           <DialogHeader className="mt-3 space-y-1">
-            <DialogTitle className="text-2xl font-display font-extrabold text-white">{step === "phone" ? "Login / Sign up" : "Verify OTP"}</DialogTitle>
-            <p className="text-white/85 text-sm">{step === "phone" ? "Continue with your mobile number" : `OTP sent to +91 ${phone}`}</p>
+            <DialogTitle className="text-2xl font-display font-extrabold text-white">{step === "phone" ? (mode === "signup" ? "Create Account" : "Login") : "Verify OTP"}</DialogTitle>
+            <p className="text-white/85 text-sm">{step === "phone" ? (mode === "signup" ? "Sign up with your mobile number" : "Welcome back — continue with your mobile") : `OTP sent to +91 ${phone}`}</p>
           </DialogHeader>
         </div>
         <div id="recaptcha-container" />
         <div className="p-6 space-y-4">
           {step === "phone" ? (
             <>
+              <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-muted" data-testid="auth-mode-toggle">
+                <button type="button" data-testid="auth-mode-login" onClick={() => setMode("login")} className={`rounded-lg py-2 text-sm font-semibold transition-colors ${mode === "login" ? "bg-white dark:bg-slate-800 shadow text-purple-600" : "text-muted-foreground"}`}>Login</button>
+                <button type="button" data-testid="auth-mode-signup" onClick={() => setMode("signup")} className={`rounded-lg py-2 text-sm font-semibold transition-colors ${mode === "signup" ? "bg-white dark:bg-slate-800 shadow text-purple-600" : "text-muted-foreground"}`}>Create Account</button>
+              </div>
               <div className="space-y-2">
                 <Label>Mobile number</Label>
                 <div className="flex items-center gap-2">
@@ -93,13 +99,15 @@ export default function AuthDialog() {
                   </div>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Name <span className="text-muted-foreground">(optional)</span></Label>
-                <Input data-testid="auth-name-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="rounded-xl" />
-              </div>
+              {mode === "signup" && (
+                <div className="space-y-2">
+                  <Label>Your name <span className="text-pink-500">*</span></Label>
+                  <Input data-testid="auth-name-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" className="rounded-xl" />
+                </div>
+              )}
               <Button data-testid="auth-send-otp-btn" onClick={sendOtp} disabled={loading}
                 className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 hover:opacity-90 h-11 text-base font-semibold">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send OTP"}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (mode === "signup" ? "Create account · Send OTP" : "Send OTP")}
               </Button>
               {cfg?.demo_enabled && (
                 <p data-testid="auth-demo-notice" className="text-xs text-center text-amber-600 flex items-center justify-center gap-1">

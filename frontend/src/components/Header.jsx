@@ -119,7 +119,7 @@ export default function Header() {
               </DropdownMenu>
             ) : (
               <>
-                <Button data-testid="header-vendor-cta" variant="ghost" className={`rounded-xl hidden sm:flex font-semibold ${onDark ? "text-white " + hoverBg : "text-purple-600"}`} onClick={() => navigate("/vendor/join")}><Store className="h-4 w-4 mr-1.5" /> Join as Vendor</Button>
+                <Button data-testid="header-vendor-cta" variant="ghost" className={`rounded-xl font-semibold px-2 sm:px-3 ${onDark ? "text-white " + hoverBg : "text-purple-600"}`} onClick={() => navigate("/vendor/join")}><Store className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Join as Vendor</span></Button>
                 <Button data-testid="header-login-btn" onClick={() => setAuthOpen(true)} className={`rounded-xl font-semibold hover:opacity-90 ${onDark ? "bg-white hover:bg-white" : "bg-gradient-to-r from-purple-600 to-pink-500"}`} style={onDark ? { color: theme.accent } : {}}>Login</Button>
               </>
             )}

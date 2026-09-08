@@ -60,3 +60,10 @@ Added dedicated Vendor Landing page `/vendor/join` (VendorLanding.jsx) — vendo
 Header: CTA renamed "List your business" → "Join as Vendor", now visible `hidden sm:flex`, routes to /vendor/join (both logged-out button and logged-in customer menu item). Home: added prominent "Join as Vendor" CTA banner section.
 Auth/roles UNCHANGED (per constraint): role→vendor still occurs only when a customer saves an onboarding draft/submits (routes_vendor.py), not on click. Public marketplace gated by status:"approved" (server.py:130) — verified all 18 public vendors are approved. Role guards verified: vendor→/api/admin/* = 403, customer→/api/vendor/* = 403.
 Files: frontend App.js (route), components/Header.jsx, pages/Home.jsx, pages/vendor/VendorLanding.jsx (new). No backend changes. No env changes. Native mobile apps remain future work — web serves both experiences via role-based routing on shared backend.
+
+## 2026-06 — Production pass: mobile "Join as Vendor" + Login/Create-Account clarity
+Two flagged bugs fixed (both verified via browser automation on 390px mobile):
+1) Mobile "Join as Vendor" was hidden (header CTA was `hidden sm:flex`). Now the header vendor CTA is always visible — store icon on mobile, full "Join as Vendor" text on sm+ — routing to /vendor/join (never the customer login modal). Mobile bottom nav (Home/Explore/Enquiries/Bookings/Profile) and homepage "Join as Vendor" banner already existed.
+2) Auth modal now has a clear Login / Create Account segmented toggle. Create Account requires a name (validated); Login keeps the fast phone-only flow. Backend upsert unchanged (creates new / logs in existing). Full OTP signup verified end-to-end (token persisted, session, user menu, redirect stays on current page).
+Files: components/AuthDialog.jsx, components/Header.jsx. No backend/env/DB changes. Customer login/signup confirmed WORKING (earlier report of "not completing" was OTP-focus in test harness, not an app bug).
+NOT built this pass (already exist OR remain backlog — see below), to respect budget & "don't break working features".
