@@ -1,0 +1,316 @@
+{
+  "project_name": "MakeMyEventPro",
+  "app_archetype": "hybrid_fullstack",
+  "contexts": {
+    "consumer_marketplace": "mobile_first_b2c_discovery_and_booking",
+    "vendor_dashboard": "saas_vendor_workspace",
+    "admin_dashboard": "saas_super_admin_control_center"
+  },
+  "brand_identity": {
+    "brand_name": "MakeMyEventPro",
+    "tagline": "Discover, Compare & Book India's Finest Event Masters",
+    "launch_city": "Hyderabad (Banjara Hills, Jubilee Hills, Gachibowli, Hitec City, Madhapur, Secunderabad, Begumpet)",
+    "core_aesthetic": "High-vibrancy festive luxury meets ultra-fast quick-commerce micro-interactions. Clean, crystal glassmorphism, dynamic category colorway metamorphosis, and tactile celebration cards.",
+    "brand_logo": {
+      "type": "Stylized 'M' celebration wave mark",
+      "gradient": "linear-gradient(135deg, #EC4899 0%, #8B5CF6 50%, #3B82F6 100%)",
+      "accent_sparkle": "#F59E0B",
+      "icon_background": "linear-gradient(135deg, #1E1B4B 0%, #312E81 50%, #4C1D95 100%)"
+    }
+  },
+  "colors": {
+    "brand_palette": {
+      "primary_blue": "#2563EB",
+      "primary_purple": "#7C3AED",
+      "primary_pink": "#EC4899",
+      "royal_indigo": "#1E1B4B",
+      "deep_navy": "#0F172A",
+      "amber_gold": "#F59E0B",
+      "emerald_verified": "#10B981"
+    },
+    "dynamic_category_themes": {
+      "all": {
+        "id": "all",
+        "name": "All Categories",
+        "primary_gradient": "from-blue-600 via-purple-600 to-pink-500",
+        "hero_accent": "#7C3AED",
+        "bg_soft": "rgba(124, 58, 237, 0.06)",
+        "badge_border": "border-purple-200 dark:border-purple-800",
+        "glow": "rgba(124, 58, 237, 0.25)"
+      },
+      "venues": {
+        "id": "venues",
+        "name": "Wedding Venues & Banquets",
+        "primary_gradient": "from-amber-600 via-rose-600 to-purple-700",
+        "hero_accent": "#D97706",
+        "bg_soft": "rgba(217, 119, 6, 0.08)",
+        "badge_border": "border-amber-300 dark:border-amber-700",
+        "glow": "rgba(217, 119, 6, 0.3)"
+      },
+      "photography": {
+        "id": "photography",
+        "name": "Wedding & Candid Photography",
+        "primary_gradient": "from-blue-600 via-indigo-600 to-cyan-500",
+        "hero_accent": "#2563EB",
+        "bg_soft": "rgba(37, 99, 235, 0.08)",
+        "badge_border": "border-blue-300 dark:border-blue-700",
+        "glow": "rgba(37, 99, 235, 0.3)"
+      },
+      "catering": {
+        "id": "catering",
+        "name": "Catering & Gourmet Feasts",
+        "primary_gradient": "from-emerald-600 via-teal-600 to-amber-500",
+        "hero_accent": "#059669",
+        "bg_soft": "rgba(5, 150, 105, 0.08)",
+        "badge_border": "border-emerald-300 dark:border-emerald-700",
+        "glow": "rgba(5, 150, 105, 0.28)"
+      },
+      "decoration": {
+        "id": "decoration",
+        "name": "Mandap, Floral & Theme Decor",
+        "primary_gradient": "from-pink-500 via-rose-500 to-orange-400",
+        "hero_accent": "#EC4899",
+        "bg_soft": "rgba(236, 72, 153, 0.08)",
+        "badge_border": "border-pink-300 dark:border-pink-700",
+        "glow": "rgba(236, 72, 153, 0.3)"
+      },
+      "entertainment": {
+        "id": "entertainment",
+        "name": "Live Bands, DJs & Sangeet MCs",
+        "primary_gradient": "from-purple-600 via-fuchsia-600 to-indigo-600",
+        "hero_accent": "#9333EA",
+        "bg_soft": "rgba(147, 51, 234, 0.08)",
+        "badge_border": "border-purple-300 dark:border-purple-700",
+        "glow": "rgba(147, 51, 234, 0.3)"
+      },
+      "beauty": {
+        "id": "beauty",
+        "name": "Bridal Makeup & Mehendi Artists",
+        "primary_gradient": "from-rose-500 via-pink-600 to-purple-500",
+        "hero_accent": "#E11D48",
+        "bg_soft": "rgba(225, 29, 72, 0.08)",
+        "badge_border": "border-rose-300 dark:border-rose-700",
+        "glow": "rgba(225, 29, 72, 0.3)"
+      },
+      "corporate": {
+        "id": "corporate",
+        "name": "Corporate Events & AV Tech",
+        "primary_gradient": "from-slate-800 via-indigo-900 to-blue-800",
+        "hero_accent": "#3B82F6",
+        "bg_soft": "rgba(59, 130, 246, 0.08)",
+        "badge_border": "border-blue-300 dark:border-blue-700",
+        "glow": "rgba(59, 130, 246, 0.25)"
+      }
+    },
+    "surface_colors": {
+      "light": {
+        "bg": "#F8FAFC",
+        "surface": "#FFFFFF",
+        "surface_card": "rgba(255, 255, 255, 0.95)",
+        "card_border": "#E2E8F0",
+        "text_primary": "#0F172A",
+        "text_muted": "#64748B"
+      },
+      "dark": {
+        "bg": "#0B0F19",
+        "surface": "#111827",
+        "surface_card": "rgba(17, 24, 39, 0.92)",
+        "card_border": "rgba(255, 255, 255, 0.1)",
+        "text_primary": "#F8FAFC",
+        "text_muted": "#94A3B8"
+      }
+    }
+  },
+  "typography": {
+    "font_pairings": {
+      "headings": "Cabinet Grotesk, Outfit, Clash Display, system-ui, sans-serif",
+      "body": "Plus Jakarta Sans, Inter, system-ui, sans-serif",
+      "festive_accents": "Playfair Display, Cormorant Garamond, serif",
+      "mono_stats": "IBM Plex Mono, monospace"
+    },
+    "hierarchy": {
+      "hero_h1": "text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight",
+      "section_h2": "text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight",
+      "card_title_h3": "text-lg sm:text-xl font-semibold tracking-normal",
+      "sub_heading": "text-base sm:text-lg text-muted-foreground",
+      "label_overline": "text-xs font-semibold tracking-[0.18em] uppercase",
+      "price_highlight": "text-xl sm:text-2xl font-black tracking-tight"
+    }
+  },
+  "spacing_and_layout": {
+    "mobile_padding": "px-4 py-4 sm:px-6",
+    "desktop_container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "section_gap": "py-10 sm:py-16 lg:py-20",
+    "card_padding": "p-5 sm:p-6",
+    "bento_grid_style": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6",
+    "app_shell_strategy": {
+      "header_height": "h-16 sm:h-20",
+      "mobile_bottom_nav_height": "h-16 md:hidden",
+      "crystal_glass_nav": "sticky top-0 z-50 backdrop-blur-xl bg-white/85 dark:bg-slate-900/85 border-b border-border shadow-sm",
+      "mobile_sticky_footer_bar": "fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-border px-4 py-2.5 flex items-center justify-around md:hidden"
+    }
+  },
+  "curated_media_assets": {
+    "hero_and_venues": [
+      {
+        "url": "https://images.unsplash.com/photo-1587271407850-8d438ca9fdf2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTF8MHwxfHNlYXJjaHwyfHxpbmRpYW4lMjB3ZWRkaW5nJTIwdmVudWUlMjBsdXh1cnl8ZW58MHx8fHwxNzg4ODc0NzQzfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Taj Krishna & Falaknuma Palace style royal ballroom mandap setup",
+        "category": "venues",
+        "usage": "hero_banner_1, vendor_detail_cover, luxury_venues_section"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1587271636175-90d58cdad458?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTF8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjB3ZWRkaW5nJTIwdmVudWUlMjBsdXh1cnl8ZW58MHx8fHwxNzg4ODc0NzQzfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Floral outdoor lawn mandap under open skies",
+        "category": "venues",
+        "usage": "hero_banner_2, venue_listing_card"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1630526720753-aa4e71acf67d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTF8MHwxfHNlYXJjaHwzfHxpbmRpYW4lMjB3ZWRkaW5nJTIwdmVudWUlMjBsdXh1cnl8ZW58MHx8fHwxNzg4ODc0NzQzfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Regal destination couple photoshoot by lakeside estate",
+        "category": "venues",
+        "usage": "trending_section, luxury_resort_card"
+      }
+    ],
+    "photography": [
+      {
+        "url": "https://images.unsplash.com/photo-1633104502699-b2ecf0fee294?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTF8MHwxfHNlYXJjaHw0fHxpbmRpYW4lMjB3ZWRkaW5nJTIwdmVudWUlMjBsdXh1cnl8ZW58MHx8fHwxNzg4ODc0NzQzfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Emotional candid Indian wedding couple moment with flower petal shower",
+        "category": "photography",
+        "usage": "photography_vendor_spotlight, photo_package_gallery"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1519741497674-611481863552?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwyfHx3ZWRkaW5nJTIwcGhvdG9ncmFwaHklMjBjb3VwbGV8ZW58MHx8fHwxNzg4ODc0NzQzfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Golden hour luxury cinematic couple portrait",
+        "category": "photography",
+        "usage": "photographer_card_1, pre_wedding_package"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1606216794079-73f85bbd57d5?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwzfHx3ZWRkaW5nJTIwcGhvdG9ncmFwaHklMjBjb3VwbGV8ZW58MHx8fHwxNzg4ODc0NzQzfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Close up bridal couture and veil elegance",
+        "category": "beauty",
+        "usage": "bridal_makeup_card, beauty_hero_banner"
+      }
+    ],
+    "catering_and_feasts": [
+      {
+        "url": "https://images.unsplash.com/photo-1680342630889-b475e612a058?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHwzfHxjYXRlcmluZyUyMGJhbnF1ZXQlMjBmb29kJTIwbHV4dXJ5fGVufDB8fHx8MTc4ODg3NDc1MHww&ixlib=rb-4.1.0&q=85",
+        "description": "Gourmet wedding appetizers live counter presentation",
+        "category": "catering",
+        "usage": "catering_vendor_card, menu_builder_preview"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1719786625035-71f46082e385?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHwyfHxjYXRlcmluZyUyMGJhbnF1ZXQlMjBmb29kJTIwbHV4dXJ5fGVufDB8fHx8MTc4ODg3NDc1MHww&ixlib=rb-4.1.0&q=85",
+        "description": "Silver tray butler service hors d'oeuvres for luxury cocktail sangeet",
+        "category": "catering",
+        "usage": "catering_package_card, sangeet_catering"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1660120447916-123439b05c40?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHwxfHxjYXRlcmluZyUyMGJhbnF1ZXQlMjBmb29kJTIwbHV4dXJ5fGVufDB8fHx8MTc4ODg3NDc1MHww&ixlib=rb-4.1.0&q=85",
+        "description": "Hyderabadi royal wedding buffet spread with biryani and regional delicacies",
+        "category": "catering",
+        "usage": "hyderabadi_specials, top_caterers_section"
+      }
+    ]
+  },
+  "component_architecture_plan": {
+    "consumer_marketplace_components": [
+      {
+        "name": "MarketplaceHeader",
+        "path": "/app/frontend/src/components/marketplace/MarketplaceHeader.js",
+        "description": "Dynamic header with City selector (Hyderabad neighborhoods: Jubilee Hills, Banjara Hills, Gachibowli, Hitec City, etc.), live quick search bar with instant autocomplete, category pills with animated active indicator, Shortlist counter badge, and Vendor/Admin mode switcher."
+      },
+      {
+        "name": "DynamicCategoryBar",
+        "path": "/app/frontend/src/components/marketplace/DynamicCategoryBar.js",
+        "description": "Zepto-inspired dynamic category navigation with instant color re-theming (Venues, Photography, Catering, Decoration, Entertainment, Makeup/Beauty, Corporate). On click, smoothly applies category color aura to the page."
+      },
+      {
+        "name": "HeroBannerCarousel",
+        "path": "/app/frontend/src/components/marketplace/HeroBannerCarousel.js",
+        "description": "High-impact auto-sliding hero with location-specific promos ('Book Top Banjara Hills Venues with 0% advance lock', 'Royal Sangeet Artists in Hyderabad'). Glassmorphism badge, CTA, and micro-animations."
+      },
+      {
+        "name": "VendorListingCard",
+        "path": "/app/frontend/src/components/marketplace/VendorListingCard.js",
+        "description": "Rich listing card with photo carousel, verified tick, distance in km (e.g. '2.4 km away in Jubilee Hills'), starting price per plate/day, Star rating + review count, 'Quick Enquire', 'Favorite', and 'Compare' toggle."
+      },
+      {
+        "name": "VendorProfileModalOrPage",
+        "path": "/app/frontend/src/components/marketplace/VendorProfileView.js",
+        "description": "Airbnb-style comprehensive view: cover gallery with high-res thumbnails, Verified Badge & KYC status, package selector (Silver/Gold/Platinum), amenities list, Hyderabadi landmark map badge, past real weddings, customer reviews with photo proof, and instant Enquiry/Book drawer."
+      },
+      {
+        "name": "VendorComparisonDrawer",
+        "path": "/app/frontend/src/components/marketplace/VendorComparisonDrawer.js",
+        "description": "Side-by-side comparison matrix for up to 3 shortlisted vendors (Pricing, Capacity, Guest Rating, Amenities, Cancellation Policy, Direct Contact)."
+      },
+      {
+        "name": "EventPlannerMyEvent",
+        "path": "/app/frontend/src/components/marketplace/EventPlannerMyEvent.js",
+        "description": "Consumer 'My Event' command center: Budget Tracker (visual progress bar, spent vs allocated), Interactive Checklist (Pre-wedding, Sangeet, Muhurtham, Reception tasks), and Day-of Timeline schedule."
+      },
+      {
+        "name": "EnquiryBookingFlowModal",
+        "path": "/app/frontend/src/components/marketplace/EnquiryBookingFlowModal.js",
+        "description": "Step-by-step frictionless booking & quote request modal: Select Event Date, Guest Count, Package Preference, Special Notes, with simulated instant quote estimate."
+      }
+    ],
+    "vendor_dashboard_components": [
+      {
+        "name": "VendorDashboardShell",
+        "path": "/app/frontend/src/components/vendor/VendorDashboardShell.js",
+        "description": "SaaS command center for verified vendors: Key stats (Total Leads, Active Quotes, Confirmed Bookings, Revenue in ₹ Lakhs, Rating 4.9/5), Lead pipeline kanban/table, Quote sender tool, Availability Calendar (block dates), and Service & Package manager."
+      }
+    ],
+    "admin_dashboard_components": [
+      {
+        "name": "AdminDashboardShell",
+        "path": "/app/frontend/src/components/admin/AdminDashboardShell.js",
+        "description": "Super Admin operations hub: Vendor KYC Verification queue (Approve/Reject with doc review), Dynamic Category theme manager, Banner carousel organizer, Commission & Revenue breakdown, and City expansion toggle."
+      }
+    ]
+  },
+  "micro_interactions_and_animations": {
+    "engine": "framer-motion",
+    "guidelines": [
+      "Use crisp scale transforms (whileHover: { scale: 1.02 }, whileTap: { scale: 0.98 }) for buttons and listing cards.",
+      "Category theme change should apply a 300ms CSS variable / Tailwind transition without jarring layout reflows.",
+      "Card image hovers: gentle zoom (scale-105 transition-transform duration-500).",
+      "Skeleton loaders during search or filter actions: pulsing subtle purple-slate skeletons.",
+      "Favor lightweight CSS keyframe animations for category glow pulses; keep mobile 60fps fluid."
+    ]
+  },
+  "accessibility_and_testing_rules": {
+    "data_test_id_convention": "MUST include data-testid on every interactive element using kebab-case (e.g. data-testid='category-chip-venues', data-testid='vendor-card-taj-banquet', data-testid='enquire-now-button', data-testid='location-selector-dropdown', data-testid='compare-checkbox-vendor-1').",
+    "contrast_standards": "All text must pass WCAG AA (4.5:1 for body, 3:1 for large display titles). White text over gradients must have backdrop-blur and semi-transparent dark tint scrim (e.g. bg-gradient-to-t from-black/80 via-black/40 to-transparent).",
+    "no_transparent_surfaces": "All dropdowns, popovers, mobile sheets, and dialogs must have explicit opaque or glass backgrounds (bg-white dark:bg-slate-900 or bg-white/95 dark:bg-slate-900/95 with backdrop-blur-xl)."
+  },
+  "universal_guidelines_for_main_agent": [
+    "You tend to converge toward generic, 'on distribution' outputs. In frontend design, this creates what users call the 'AI slop' aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur).",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms.",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text.",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style.",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯 etc for icons. Use lucide-react icons exclusively.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN.",
+    "Component Reuse: Prioritize using pre-existing components from src/components/ui when applicable; customize with Tailwind classes.",
+    "Toasts: Use sonner for toasts.",
+    "Ensure all mock vendors use realistic Hyderabad areas (Banjara Hills Road No 10, Jubilee Hills, Financial District, Hitec City, Secunderabad Club Road) with authentic pricing in Indian Rupees (₹) and Indian numbering format (e.g., ₹1,800/plate, ₹1,20,000/day, ₹4,50,000 package)."
+  ],
+  "implementation_checklist_for_main_agent": [
+    "1. Setup top Navigation with location detector ('Hyderabad - Jubilee Hills' default), Search bar, dynamic Category switcher, Shortlist badge, and role switcher tab (Customer / Vendor Portal / Super Admin).",
+    "2. Implement Category Color Theme Context that updates CSS variables / theme class so active category (Venues, Photography, Catering, Decor, etc.) bathes the hero search, badge borders, and accents in corresponding vibrant hue.",
+    "3. Build responsive Hero Banner with dynamic slide carousel showcasing real Indian wedding setups, discount badges, and instant booking hooks.",
+    "4. Construct high-density vendor listing grid with interactive filters (Budget, Guest Capacity, Rating 4.5+, Veg/Non-Veg, Distance) and comparison tray.",
+    "5. Develop Airbnb-style detailed Vendor Profile Modal/Page with interactive package calculator and instant enquiry drawer.",
+    "6. Include the 'My Event' Planner feature with interactive budget tracker, milestone checklist, and day schedule.",
+    "7. Include simulated Vendor SaaS workspace (leads, quote generation, availability calendar) and Super Admin control panel (KYC approvals, category manager).",
+    "8. Ensure every button, input, tab, card, and modal has unambiguous data-testid attributes."
+  ]
+}
