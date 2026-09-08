@@ -222,6 +222,13 @@ export function PaymentSettingsTab() {
   const [demoOn, setDemoOn] = useState(true);
   const [rzpOn, setRzpOn] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState("");
+  const testConn = async (m) => {
+    setTesting(m);
+    try { const { data } = await api.post("/admin/payment-settings/test-connection", { mode: m }); data.ok ? toast.success(data.message) : toast.error(data.message); }
+    catch (e) { toast.error(e.response?.data?.detail || "Test failed"); }
+    finally { setTesting(""); }
+  };
   const load = () => api.get("/admin/payment-settings").then((r) => {
     setSt(r.data); setMode(r.data.payment_mode === "none" ? "demo" : r.data.payment_mode);
     setDemoOn(r.data.demo_payment_enabled); setRzpOn(r.data.razorpay_enabled);
@@ -280,10 +287,12 @@ export function PaymentSettingsTab() {
           <div className="rounded-xl border border-border p-3 space-y-2" data-testid="razorpay-test-config"><div className="font-medium text-sm flex items-center justify-between">Test keys <Chip ok={testCfg.configured} /></div>
             <div className="text-xs flex justify-between items-center"><span className="text-muted-foreground">Key ID</span><Chip ok={testCfg.key_id_configured} /></div>
             <div className="text-xs flex justify-between items-center"><span className="text-muted-foreground">Key Secret</span><Chip ok={testCfg.key_secret_configured} /></div>
+            <Button data-testid="test-razorpay-test" size="sm" variant="outline" className="rounded-xl w-full mt-1" disabled={testing === "razorpay_test"} onClick={() => testConn("razorpay_test")}>{testing === "razorpay_test" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test Connection"}</Button>
           </div>
           <div className="rounded-xl border border-border p-3 space-y-2" data-testid="razorpay-live-config"><div className="font-medium text-sm flex items-center justify-between">Live keys <Chip ok={liveCfg.configured} /></div>
             <div className="text-xs flex justify-between items-center"><span className="text-muted-foreground">Key ID</span><Chip ok={liveCfg.key_id_configured} /></div>
             <div className="text-xs flex justify-between items-center"><span className="text-muted-foreground">Key Secret</span><Chip ok={liveCfg.key_secret_configured} /></div>
+            <Button data-testid="test-razorpay-live" size="sm" variant="outline" className="rounded-xl w-full mt-1" disabled={testing === "razorpay_live"} onClick={() => testConn("razorpay_live")}>{testing === "razorpay_live" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test Connection"}</Button>
           </div>
         </div>
         <p className="text-xs text-muted-foreground">Razorpay Key Secrets are configured in the server environment and are never sent to the browser.</p>
@@ -297,6 +306,30 @@ export function PaymentSettingsTab() {
   );
 }
 
+
+// ---------- Notifications broadcast ----------
+export function IntegrationsTab() {
+  const [s, setS] = useState(null);
+  useEffect(() => { api.get("/admin/integrations-status").then((r) => setS(r.data)).catch(() => {}); }, []);
+  if (!s) return <div className="flex justify-center py-10" data-testid="admin-integrations-loading"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  const rows = [
+    ["Firebase Auth (server)", s.firebase.configured, `Provider: ${s.firebase.provider}${s.firebase.demo_otp_enabled ? " · demo OTP enabled" : ""}`, "backend/.env → FIREBASE_SERVICE_ACCOUNT_JSON (backend secret)"],
+    ["Razorpay Test", s.razorpay_test.configured, "Manage & test in the Payment Settings tab", "backend/.env → RAZORPAY_TEST_KEY_ID / RAZORPAY_TEST_KEY_SECRET (backend secret)"],
+    ["Razorpay Live", s.razorpay_live.configured, "Manage & test in the Payment Settings tab", "backend/.env → RAZORPAY_LIVE_KEY_ID / RAZORPAY_LIVE_KEY_SECRET (backend secret)"],
+    ["Google Maps", s.google_maps.configured, "Pins, autocomplete & distance", "frontend/.env → REACT_APP_GOOGLE_MAPS_API_KEY (frontend-safe)"],
+    ["WhatsApp", s.whatsapp.api_configured, s.whatsapp.click_to_chat ? "Click-to-chat (wa.me) works without an API key" : "", "backend/.env → WHATSAPP_API_TOKEN (optional, backend secret)"],
+    ["Email", s.email.configured, "Transactional email", "backend/.env → RESEND_API_KEY (backend secret)"],
+    ["SMS", s.sms.configured, "SMS notifications", "backend/.env → TWILIO_AUTH_TOKEN (backend secret)"],
+  ];
+  return (
+    <div className="max-w-3xl space-y-3" data-testid="admin-integrations">
+      <Card className="space-y-1"><h3 className="font-display font-bold flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-purple-600" /> Integrations & Configuration</h3><p className="text-xs text-muted-foreground">Status only — secrets are stored server-side and never displayed. Add each credential in the location shown, then restart services.</p></Card>
+      {rows.map(([name, ok, desc, where]) => (
+        <Card key={name} className="flex items-center justify-between gap-3" ><div><div className="font-semibold text-sm">{name}</div>{desc && <div className="text-xs text-muted-foreground">{desc}</div>}<div className="text-[11px] text-muted-foreground mt-0.5">{where}</div></div><Chip ok={ok} testId={`integration-${name.split(" ")[0].toLowerCase()}`} /></Card>
+      ))}
+    </div>
+  );
+}
 
 // ---------- Notifications broadcast ----------
 export function NotifyTab() {

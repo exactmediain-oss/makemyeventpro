@@ -100,6 +100,19 @@ def razorpay_refund(payment_id: str, amount_inr: float, rzp_mode: str = "test"):
     return _rzp_client(rzp_mode).payment.refund(payment_id, {"amount": int(round(amount_inr * 100))})
 
 
+def test_connection(rzp_mode: str):
+    """Validate configured Razorpay credentials with a lightweight authenticated call. No charge. Never returns secrets."""
+    kid, ksec = keys_for_mode(rzp_mode)
+    if not (kid and ksec):
+        return {"ok": False, "message": f"Razorpay {rzp_mode} credentials not configured"}
+    try:
+        _rzp_client(rzp_mode).order.all({"count": 1})
+        return {"ok": True, "message": f"Razorpay {rzp_mode} connection successful"}
+    except Exception as e:
+        logger.warning(f"razorpay {rzp_mode} test failed: {e}")
+        return {"ok": False, "message": f"Invalid Razorpay {rzp_mode} credentials"}
+
+
 async def stripe_create_session(amount_inr: float, success_url: str, cancel_url: str, metadata: dict, webhook_url: str):
     from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
     sc = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)

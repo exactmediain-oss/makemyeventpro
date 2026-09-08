@@ -55,6 +55,8 @@ class OnboardingDraft(BaseModel):
     terms_accepted: Optional[bool] = None
     declaration_accepted: Optional[bool] = None
     current_step: Optional[int] = None
+    blocked_dates: Optional[List[str]] = None
+    working_days: Optional[List[str]] = None
 
 
 def completion(v: dict):
@@ -152,7 +154,7 @@ async def vendor_update(body: OnboardingDraft, user=Depends(require_roles(*VENDO
     v = await get_vendor_for_user(user)
     allowed = {"description", "gallery", "videos", "logo", "cover", "social", "website", "services", "packages",
                "amenities", "event_types", "starting_price", "price_unit", "custom_fields", "service_areas",
-               "business_phone", "email", "subcategories", "years"}
+               "business_phone", "email", "subcategories", "years", "blocked_dates", "working_days"}
     upd = {k: val for k, val in body.model_dump().items() if val is not None and k in allowed}
     upd["updated_at"] = now_iso()
     await db.vendors.update_one({"id": v["id"]}, {"$set": upd})

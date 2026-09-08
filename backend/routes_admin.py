@@ -1,4 +1,5 @@
 """Admin control plane: vendors review, categories, customers, coupons, reviews, bookings, payments, plans, CMS, settings."""
+import os
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List
@@ -527,6 +528,39 @@ async def update_payment_settings(body: PaymentSettingsIn, user=Depends(SUPER)):
                 {"previous_mode": prev, "new_mode": body.payment_mode,
                  "demo_payment_enabled": body.demo_payment_enabled, "razorpay_enabled": body.razorpay_enabled})
     return await _payment_settings_status()
+
+
+class TestConnIn(BaseModel):
+    mode: str  # razorpay_test | razorpay_live
+
+
+@router.post("/payment-settings/test-connection")
+async def payment_test_connection(body: TestConnIn, user=Depends(SUPER)):
+    """Validate Razorpay credentials without charging. Returns status only, never secrets."""
+    if body.mode not in ("razorpay_test", "razorpay_live"):
+        raise HTTPException(400, "Invalid mode")
+    rzp_mode = "test" if body.mode == "razorpay_test" else "live"
+    result = pay.test_connection(rzp_mode)
+    await audit(user, "payment.test_connection", body.mode, {"ok": result["ok"]})
+    return result
+
+
+@router.get("/integrations-status")
+async def integrations_status(user=Depends(ANY_ADMIN)):
+    """Configured/Not-Configured status for all integrations. Secrets are never returned."""
+    def has(*names):
+        return any(bool(os.environ.get(n)) for n in names)
+    return {
+        "firebase": {"configured": has("FIREBASE_SERVICE_ACCOUNT_JSON", "FIREBASE_SERVICE_ACCOUNT_PATH"),
+                     "provider": os.environ.get("OTP_PROVIDER", "demo"),
+                     "demo_otp_enabled": os.environ.get("DEMO_OTP_ENABLED", "false").lower() == "true"},
+        "razorpay_test": {"configured": pay.razorpay_test_configured()},
+        "razorpay_live": {"configured": pay.razorpay_live_configured()},
+        "google_maps": {"configured": has("GOOGLE_MAPS_API_KEY", "REACT_APP_GOOGLE_MAPS_API_KEY")},
+        "whatsapp": {"api_configured": has("WHATSAPP_API_TOKEN", "WHATSAPP_TOKEN"), "click_to_chat": True},
+        "email": {"configured": has("RESEND_API_KEY", "SENDGRID_API_KEY", "SMTP_HOST")},
+        "sms": {"configured": has("TWILIO_AUTH_TOKEN", "SMS_API_KEY")},
+    }
 
 
 # ----------------------------- notifications -----------------------------

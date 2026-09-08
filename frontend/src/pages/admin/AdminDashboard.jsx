@@ -10,11 +10,11 @@ import VendorsTab from "./VendorsTab";
 import FieldBuilderTab from "./FieldBuilderTab";
 import LocationsTab from "./LocationsTab";
 import CategoryManagerTab from "./CategoryManagerTab";
-import { BannersTab, CustomersTab, BookingsTab, PaymentsTab, CouponsTab, ReviewsTab, PlansTab, PagesTab, SettingsTab, PaymentSettingsTab, NotifyTab, AuditTab } from "./tabs";
+import { BannersTab, CustomersTab, BookingsTab, PaymentsTab, CouponsTab, ReviewsTab, PlansTab, PagesTab, SettingsTab, PaymentSettingsTab, IntegrationsTab, NotifyTab, AuditTab } from "./tabs";
 import AuthDialog from "@/components/AuthDialog";
 
 const TABS = [["kyc", "KYC Queue"], ["vendors", "Vendors"], ["fields", "Field Builder"], ["categories", "Categories"], ["locations", "Locations"], ["customers", "Customers"],
-  ["bookings", "Bookings"], ["payments", "Payments & Payouts"], ["paysettings", "Payment Settings"], ["coupons", "Coupons & Offers"], ["reviews", "Reviews"], ["banners", "Banners & Ads"], ["plans", "Vendor Plans"], ["pages", "CMS Pages"], ["notify", "Notifications"], ["settings", "Settings"], ["audit", "Audit Logs"]];
+  ["bookings", "Bookings"], ["payments", "Payments & Payouts"], ["paysettings", "Payment Settings"], ["integrations", "Integrations"], ["coupons", "Coupons & Offers"], ["reviews", "Reviews"], ["banners", "Banners & Ads"], ["plans", "Vendor Plans"], ["pages", "CMS Pages"], ["notify", "Notifications"], ["settings", "Settings"], ["audit", "Audit Logs"]];
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -71,6 +71,7 @@ export default function AdminDashboard() {
           <TabsContent value="bookings" className="pt-5"><BookingsTab /></TabsContent>
           <TabsContent value="payments" className="pt-5"><PaymentsTab /></TabsContent>
           <TabsContent value="paysettings" className="pt-5"><PaymentSettingsTab /></TabsContent>
+          <TabsContent value="integrations" className="pt-5"><IntegrationsTab /></TabsContent>
           <TabsContent value="coupons" className="pt-5"><CouponsTab categories={categories} /></TabsContent>
           <TabsContent value="reviews" className="pt-5"><ReviewsTab /></TabsContent>
           <TabsContent value="banners" className="pt-5"><BannersTab categories={categories} /></TabsContent>

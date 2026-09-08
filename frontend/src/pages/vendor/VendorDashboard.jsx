@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LayoutDashboard, Users, FileText, Star, Eye, Package, Wrench, LogOut, Loader2, BadgeCheck, IndianRupee, CalendarCheck, Pencil, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -30,6 +31,10 @@ export default function VendorDashboard() {
     catch (e) { toast.error(e.response?.data?.detail || "Failed"); }
   };
   const respond = async (r, text) => { await api.post(`/reviews/${r.id}/respond`, { response: text }); toast.success("Response posted"); load(); };
+  const [newDate, setNewDate] = useState("");
+  const saveBlocked = async (dates) => { await api.put("/vendor/me", { blocked_dates: dates }); setProfile((p) => ({ ...p, blocked_dates: dates })); };
+  const addBlocked = async () => { if (!newDate) return; const cur = profile.blocked_dates || []; if (cur.includes(newDate)) { toast.error("Date already blocked"); return; } try { await saveBlocked([...cur, newDate].sort()); setNewDate(""); toast.success("Date blocked"); } catch (e) { toast.error("Could not block date"); } };
+  const removeBlocked = async (d) => { try { await saveBlocked((profile.blocked_dates || []).filter((x) => x !== d)); toast.success("Date unblocked"); } catch (e) { toast.error("Could not unblock"); } };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if (!user || noProfile) return (
@@ -95,6 +100,7 @@ export default function VendorDashboard() {
             <TabsTrigger value="leads" data-testid="vendor-tab-leads" className="rounded-lg">Leads ({leads.length})</TabsTrigger>
             <TabsTrigger value="bookings" data-testid="vendor-tab-bookings" className="rounded-lg">Bookings ({bookings.length})</TabsTrigger>
             <TabsTrigger value="payments" data-testid="vendor-tab-payments" className="rounded-lg">Payments</TabsTrigger>
+            <TabsTrigger value="availability" data-testid="vendor-tab-availability" className="rounded-lg">Availability</TabsTrigger>
             <TabsTrigger value="reviews" data-testid="vendor-tab-reviews" className="rounded-lg">Reviews</TabsTrigger>
           </TabsList>
 
@@ -131,6 +137,18 @@ export default function VendorDashboard() {
               {payments.length === 0 ? <div className="text-center py-16 text-muted-foreground">No payments yet.</div> : (
                 <Table><TableHeader><TableRow><TableHead>Booking</TableHead><TableHead>Type</TableHead><TableHead>Gross</TableHead><TableHead>Commission</TableHead><TableHead>Your earnings</TableHead><TableHead>Status</TableHead><TableHead>Date</TableHead></TableRow></TableHeader>
                   <TableBody>{payments.map((p) => <TableRow key={p.id}><TableCell className="font-mono text-xs">{p.booking_code}</TableCell><TableCell className="capitalize">{p.type}</TableCell><TableCell>{formatINR(p.gross_amount)}</TableCell><TableCell className="text-red-500">-{formatINR(p.commission)}</TableCell><TableCell className="font-bold text-emerald-600">{formatINR(p.vendor_amount)}</TableCell><TableCell><StatusBadge status={p.status} /></TableCell><TableCell className="text-xs">{new Date(p.created_at).toLocaleDateString("en-IN")}</TableCell></TableRow>)}</TableBody></Table>)}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="availability" className="pt-5">
+            <div className="rounded-2xl border border-border bg-card p-5 space-y-4" data-testid="vendor-availability">
+              <div><h3 className="font-display font-bold">Blocked dates</h3><p className="text-sm text-muted-foreground">Customers cannot book you on blocked dates — availability is enforced on our server.</p></div>
+              <div className="flex gap-2 max-w-sm">
+                <Input data-testid="blocked-date-input" type="date" value={newDate} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setNewDate(e.target.value)} className="rounded-xl" />
+                <Button data-testid="block-date-btn" className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-500" onClick={addBlocked}>Block date</Button>
+              </div>
+              <div className="flex flex-wrap gap-2">{(profile.blocked_dates || []).length === 0 ? <span className="text-sm text-muted-foreground">No blocked dates.</span> : (profile.blocked_dates || []).map((d) => (
+                <span key={d} data-testid={`blocked-${d}`} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-sm">{d}<button data-testid={`unblock-${d}`} onClick={() => removeBlocked(d)} className="text-red-500 hover:text-red-600 font-bold">×</button></span>))}</div>
             </div>
           </TabsContent>
 

@@ -286,6 +286,13 @@ async def quote_action(quote_id: str, action: str, user=Depends(get_current_user
         await db.quotes.update_one({"id": quote_id}, {"$set": {"status": "expired"}})
         raise HTTPException(400, "Quote has expired — ask the vendor for a fresh quote")
     e = await db.enquiries.find_one({"id": q["enquiry_id"]}, {"_id": 0})
+    ev_date = e.get("event_date")
+    if ev_date:
+        vend = await db.vendors.find_one({"id": q["vendor_id"]}, {"_id": 0, "blocked_dates": 1})
+        if vend and ev_date in (vend.get("blocked_dates") or []):
+            raise HTTPException(400, "The vendor is unavailable on the selected event date. Please pick another date.")
+        if await db.bookings.find_one({"vendor_id": q["vendor_id"], "event_date": ev_date, "status": {"$in": ["confirmed", "in_progress"]}}):
+            raise HTTPException(400, "This date is already booked with the vendor. Please choose a different date.")
     commission_pct = await get_setting("commission_percent", 10)
     booking = {"id": new_id(), "code": "MMEP-" + new_id()[:6].upper(), "enquiry_id": e["id"], "quote_id": quote_id,
                "user_id": user["id"], "customer_name": user.get("name"), "customer_phone": user.get("phone"),
