@@ -90,7 +90,9 @@ export default function BookingDetail() {
             {d.review && <div className="rounded-2xl border border-border bg-card p-5 text-sm"><b>Your review</b> · {d.review.rating}★ · <StatusBadge status={d.review.status} /><p className="mt-1 text-muted-foreground">{d.review.text}</p></div>}
           </div>
           <div className="space-y-4">
-            {canPay && <div className="rounded-2xl border border-border bg-card p-5"><h3 className="font-display font-bold mb-3">{b.paid_amount === 0 ? "Pay advance to confirm" : "Pay balance"}</h3><PayButton booking={b} type={b.paid_amount === 0 ? "advance" : "balance"} config={d.payment_config} demoEnabled={d.demo_payment_enabled} onPaid={load} /></div>}
+            {canPay && (d.payment_config?.checkout_available !== false
+              ? <div className="rounded-2xl border border-border bg-card p-5"><h3 className="font-display font-bold mb-3">{b.paid_amount === 0 ? "Pay advance to confirm" : "Pay balance"}</h3><PayButton booking={b} type={b.paid_amount === 0 ? "advance" : "balance"} config={d.payment_config} demoEnabled={d.demo_payment_enabled} onPaid={load} /></div>
+              : <div data-testid="payment-unavailable" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">Online payment is temporarily unavailable. Please contact the vendor or our support team to complete your booking.</div>)}
             <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
               <Button data-testid="invoice-btn" variant="outline" className="w-full rounded-xl" onClick={() => setInv(true)}><Receipt className="h-4 w-4 mr-2" /> Invoice / Receipt</Button>
               {canCancel && <Button data-testid="cancel-booking-btn" variant="outline" className="w-full rounded-xl text-red-500 border-red-200" onClick={() => setCancelOpen(true)}><Ban className="h-4 w-4 mr-2" /> Cancel booking</Button>}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2, CheckCircle2, XCircle, ShieldCheck, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -207,6 +207,96 @@ export function SettingsTab() {
     </div>
   );
 }
+
+// ---------- Payment Settings (mode selection; secrets stay server-side) ----------
+const MODE_LABELS = { demo: "Demo Payment", razorpay_test: "Razorpay Test", razorpay_live: "Razorpay Live", none: "None" };
+const Chip = ({ ok, okText = "Configured", noText = "Not Configured", testId }) => (
+  <span data-testid={testId} className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${ok ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+    {ok ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}{ok ? okText : noText}
+  </span>
+);
+
+export function PaymentSettingsTab() {
+  const [st, setSt] = useState(null);
+  const [mode, setMode] = useState("demo");
+  const [demoOn, setDemoOn] = useState(true);
+  const [rzpOn, setRzpOn] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const load = () => api.get("/admin/payment-settings").then((r) => {
+    setSt(r.data); setMode(r.data.payment_mode === "none" ? "demo" : r.data.payment_mode);
+    setDemoOn(r.data.demo_payment_enabled); setRzpOn(r.data.razorpay_enabled);
+  }).catch(() => {});
+  useEffect(() => { load(); }, []);
+  const save = async () => {
+    setBusy(true);
+    try {
+      const { data } = await api.put("/admin/payment-settings", { payment_mode: mode, demo_payment_enabled: demoOn, razorpay_enabled: rzpOn });
+      setSt(data); toast.success(`Payment settings saved — customers now use ${MODE_LABELS[data.payment_mode]}`);
+    } catch (e) { toast.error(e.response?.data?.detail || "Could not save settings"); }
+    finally { setBusy(false); }
+  };
+  if (!st) return <div className="flex justify-center py-10" data-testid="admin-payment-settings-loading"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  const testCfg = st.razorpay_test, liveCfg = st.razorpay_live;
+  const modes = [
+    { k: "demo", label: "Demo Payment", desc: "Simulated gateway — no real charge. For testing the checkout flow." },
+    { k: "razorpay_test", label: "Razorpay Test Mode", desc: "Real Razorpay checkout UI using TEST keys. No real money moves.", ok: testCfg.configured, warn: "Razorpay Test Mode is not configured" },
+    { k: "razorpay_live", label: "Razorpay Live Mode", desc: "Live payments using Razorpay LIVE keys. Real money is charged.", ok: liveCfg.configured, warn: "Razorpay Live Mode is not configured" },
+  ];
+  const blocked = (mode === "razorpay_test" && !testCfg.configured) || (mode === "razorpay_live" && !liveCfg.configured);
+  return (
+    <div className="max-w-3xl space-y-4" data-testid="admin-payment-settings">
+      <Card className="space-y-3">
+        <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-purple-600" /><h3 className="font-display font-bold">Payment Settings</h3></div>
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <span className="text-muted-foreground">Current mode:</span>
+          <span data-testid="current-payment-mode" className="font-semibold">{MODE_LABELS[st.payment_mode] || "None"}</span>
+          <span data-testid="checkout-availability" className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${st.checkout_available ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{st.checkout_available ? "Active" : "Online payment unavailable"}</span>
+        </div>
+        <p className="text-xs text-muted-foreground">Choose which payment method customers see at checkout. Changes take effect immediately and are recorded in the audit log.</p>
+      </Card>
+
+      <Card className="space-y-3">
+        <h4 className="font-semibold text-sm">Select payment mode</h4>
+        {modes.map((m) => (
+          <label key={m.k} data-testid={`payment-mode-${m.k}`} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${mode === m.k ? "border-purple-500 bg-purple-50/50" : "border-border hover:border-purple-200"}`}>
+            <input type="radio" name="paymode" className="mt-1 accent-purple-600" checked={mode === m.k} onChange={() => setMode(m.k)} data-testid={`payment-mode-radio-${m.k}`} />
+            <div className="flex-1">
+              <div className="flex items-center gap-2 flex-wrap"><span className="font-medium text-sm">{m.label}</span>{m.k !== "demo" && <Chip ok={m.ok} testId={`payment-mode-status-${m.k}`} />}</div>
+              <p className="text-xs text-muted-foreground mt-0.5">{m.desc}</p>
+              {m.k !== "demo" && !m.ok && <p className="text-xs text-rose-600 mt-1">{m.warn}</p>}
+            </div>
+          </label>
+        ))}
+      </Card>
+
+      <Card className="space-y-4">
+        <div className="flex items-center justify-between gap-4"><div><div className="font-medium text-sm">Demo Payment enabled</div><p className="text-xs text-muted-foreground">Allow the simulated demo gateway at checkout.</p></div><Switch data-testid="toggle-demo-enabled" checked={demoOn} onCheckedChange={setDemoOn} /></div>
+        <div className="flex items-center justify-between gap-4"><div><div className="font-medium text-sm">Razorpay enabled</div><p className="text-xs text-muted-foreground">Master switch for Razorpay checkout (test &amp; live).</p></div><Switch data-testid="toggle-razorpay-enabled" checked={rzpOn} onCheckedChange={setRzpOn} /></div>
+      </Card>
+
+      <Card className="space-y-3">
+        <h4 className="font-semibold text-sm">Razorpay configuration <span className="text-xs font-normal text-muted-foreground">· secrets never leave the server</span></h4>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div className="rounded-xl border border-border p-3 space-y-2" data-testid="razorpay-test-config"><div className="font-medium text-sm flex items-center justify-between">Test keys <Chip ok={testCfg.configured} /></div>
+            <div className="text-xs flex justify-between items-center"><span className="text-muted-foreground">Key ID</span><Chip ok={testCfg.key_id_configured} /></div>
+            <div className="text-xs flex justify-between items-center"><span className="text-muted-foreground">Key Secret</span><Chip ok={testCfg.key_secret_configured} /></div>
+          </div>
+          <div className="rounded-xl border border-border p-3 space-y-2" data-testid="razorpay-live-config"><div className="font-medium text-sm flex items-center justify-between">Live keys <Chip ok={liveCfg.configured} /></div>
+            <div className="text-xs flex justify-between items-center"><span className="text-muted-foreground">Key ID</span><Chip ok={liveCfg.key_id_configured} /></div>
+            <div className="text-xs flex justify-between items-center"><span className="text-muted-foreground">Key Secret</span><Chip ok={liveCfg.key_secret_configured} /></div>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">Razorpay Key Secrets are configured in the server environment and are never sent to the browser.</p>
+      </Card>
+
+      {blocked && <p className="text-xs text-rose-600" data-testid="payment-save-blocked">Configure the selected Razorpay key pair on the server before activating this mode.</p>}
+      <Button data-testid="save-payment-settings" onClick={save} disabled={busy || blocked} className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-500">
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-2" /> Save Settings</>}
+      </Button>
+    </div>
+  );
+}
+
 
 // ---------- Notifications broadcast ----------
 export function NotifyTab() {

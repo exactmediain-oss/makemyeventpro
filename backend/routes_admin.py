@@ -2,7 +2,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List
-from core import db, now_iso, new_id, slugify, clean, require_roles, audit, notify, ADMIN_ROLES, SUPER_ROLES
+from core import db, now_iso, new_id, slugify, clean, require_roles, audit, notify, get_setting, ADMIN_ROLES, SUPER_ROLES, PAYMENT_DEMO_ENABLED
+import payments as pay
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 ANY_ADMIN = require_roles(*ADMIN_ROLES)
@@ -461,6 +462,71 @@ async def put_setting(body: SettingIn, user=Depends(SUPER)):
     await db.settings.update_one({"key": body.key}, {"$set": {"key": body.key, "value": body.value, "updated_at": now_iso()}}, upsert=True)
     await audit(user, "setting.update", body.key)
     return {"ok": True}
+
+
+# ----------------------------- payment settings (mode selection; secrets stay server-side) -----------------------------
+class PaymentSettingsIn(BaseModel):
+    payment_mode: str  # demo | razorpay_test | razorpay_live
+    demo_payment_enabled: Optional[bool] = None
+    razorpay_enabled: Optional[bool] = None
+
+
+async def _payment_settings_status():
+    mode = await get_setting("payment_mode", None)
+    demo_on = await get_setting("demo_payment_enabled", None)
+    rzp_on = await get_setting("razorpay_enabled", True)
+    if demo_on is None:
+        demo_on = PAYMENT_DEMO_ENABLED
+    test_ok = pay.razorpay_test_configured()
+    live_ok = pay.razorpay_live_configured()
+    eff_mode = mode
+    if eff_mode is None:
+        eff_mode = "demo" if demo_on else "none"
+    if eff_mode == "razorpay_test":
+        active_provider = "razorpay" if (rzp_on and test_ok) else "none"
+    elif eff_mode == "razorpay_live":
+        active_provider = "razorpay" if (rzp_on and live_ok) else "none"
+    elif eff_mode == "demo":
+        active_provider = "demo" if demo_on else "none"
+    else:
+        active_provider = "none"
+    return {
+        "payment_mode": eff_mode,
+        "is_explicitly_set": mode is not None,
+        "demo_payment_enabled": bool(demo_on),
+        "razorpay_enabled": bool(rzp_on),
+        "razorpay_test": {"key_id_configured": bool(pay.RZP_TEST_KEY_ID),
+                          "key_secret_configured": bool(pay.RZP_TEST_KEY_SECRET), "configured": test_ok},
+        "razorpay_live": {"key_id_configured": bool(pay.RZP_LIVE_KEY_ID),
+                          "key_secret_configured": bool(pay.RZP_LIVE_KEY_SECRET), "configured": live_ok},
+        "active_provider": active_provider,
+        "checkout_available": active_provider != "none",
+    }
+
+
+@router.get("/payment-settings")
+async def get_payment_settings(user=Depends(ANY_ADMIN)):
+    return await _payment_settings_status()
+
+
+@router.put("/payment-settings")
+async def update_payment_settings(body: PaymentSettingsIn, user=Depends(SUPER)):
+    if body.payment_mode not in ("demo", "razorpay_test", "razorpay_live"):
+        raise HTTPException(400, "Invalid payment mode")
+    if body.payment_mode == "razorpay_test" and not pay.razorpay_test_configured():
+        raise HTTPException(400, "Razorpay Test Mode is not configured")
+    if body.payment_mode == "razorpay_live" and not pay.razorpay_live_configured():
+        raise HTTPException(400, "Razorpay Live Mode is not configured")
+    prev = await get_setting("payment_mode", None)
+    await db.settings.update_one({"key": "payment_mode"}, {"$set": {"key": "payment_mode", "value": body.payment_mode, "updated_at": now_iso()}}, upsert=True)
+    if body.demo_payment_enabled is not None:
+        await db.settings.update_one({"key": "demo_payment_enabled"}, {"$set": {"key": "demo_payment_enabled", "value": bool(body.demo_payment_enabled), "updated_at": now_iso()}}, upsert=True)
+    if body.razorpay_enabled is not None:
+        await db.settings.update_one({"key": "razorpay_enabled"}, {"$set": {"key": "razorpay_enabled", "value": bool(body.razorpay_enabled), "updated_at": now_iso()}}, upsert=True)
+    await audit(user, "payment.mode.update", body.payment_mode,
+                {"previous_mode": prev, "new_mode": body.payment_mode,
+                 "demo_payment_enabled": body.demo_payment_enabled, "razorpay_enabled": body.razorpay_enabled})
+    return await _payment_settings_status()
 
 
 # ----------------------------- notifications -----------------------------

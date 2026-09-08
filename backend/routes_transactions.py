@@ -117,6 +117,40 @@ async def _set_booking_status(b, status, actor, note=None):
     await db.enquiries.update_one({"id": b["enquiry_id"]}, {"$set": {"status": status}})
 
 
+async def effective_payment():
+    """Resolve the active checkout config from the DB-stored payment_mode.
+    Secrets are never included — only the public razorpay key_id and boolean flags.
+    When no payment_mode is stored, the current env-driven behavior is preserved."""
+    mode = await get_setting("payment_mode", None)
+    demo_on = await get_setting("demo_payment_enabled", None)
+    rzp_on = await get_setting("razorpay_enabled", True)
+    if demo_on is None:
+        demo_on = PAYMENT_DEMO_ENABLED
+    if mode is None:
+        if pay.active_provider() == "razorpay":
+            mode = "razorpay_live" if pay.RZP_KEY_ID.startswith("rzp_live") else "razorpay_test"
+        elif demo_on:
+            mode = "demo"
+        else:
+            mode = "none"
+    if mode == "demo":
+        prov = "demo" if demo_on else "none"
+        return {"payment_mode": "demo", "provider": prov, "rzp_mode": None, "razorpay_key_id": None,
+                "demo_enabled": bool(demo_on), "checkout_available": prov != "none"}
+    if mode == "razorpay_test":
+        ok = bool(rzp_on) and pay.razorpay_test_configured()
+        return {"payment_mode": "razorpay_test", "provider": "razorpay" if ok else "none", "rzp_mode": "test",
+                "razorpay_key_id": pay.public_key_id("test") if ok else None, "demo_enabled": False,
+                "checkout_available": ok}
+    if mode == "razorpay_live":
+        ok = bool(rzp_on) and pay.razorpay_live_configured()
+        return {"payment_mode": "razorpay_live", "provider": "razorpay" if ok else "none", "rzp_mode": "live",
+                "razorpay_key_id": pay.public_key_id("live") if ok else None, "demo_enabled": False,
+                "checkout_available": ok}
+    return {"payment_mode": "none", "provider": "none", "rzp_mode": None, "razorpay_key_id": None,
+            "demo_enabled": False, "checkout_available": False}
+
+
 # ----------------------------- enquiries -----------------------------
 @router.post("/enquiries")
 async def create_enquiry(body: EnquiryCreate, user=Depends(get_current_user)):
@@ -285,8 +319,11 @@ async def booking_detail(booking_id: str, user=Depends(get_current_user)):
     pays = await db.payments.find({"booking_id": booking_id}, {"_id": 0}).sort("created_at", -1).to_list(50)
     review = await db.reviews.find_one({"booking_id": booking_id}, {"_id": 0})
     vendor = await db.vendors.find_one({"id": b["vendor_id"]}, {"_id": 0, "business_name": 1, "slug": 1, "cover": 1, "address": 1, "business_phone": 1, "gst_number": 1})
+    eff = await effective_payment()
     return {"booking": b, "payments": pays, "review": review, "vendor": vendor, "viewer_role": role,
-            "payment_config": pay.public_config(), "demo_payment_enabled": PAYMENT_DEMO_ENABLED}
+            "payment_config": {"provider": eff["provider"], "razorpay_key_id": eff["razorpay_key_id"],
+                               "payment_mode": eff["payment_mode"], "checkout_available": eff["checkout_available"]},
+            "demo_payment_enabled": eff["demo_enabled"]}
 
 
 @router.get("/bookings/{booking_id}/invoice")
@@ -339,7 +376,7 @@ async def refund_action(booking_id: str, action: str, body: StatusIn = None, use
     for p in await db.payments.find({"booking_id": booking_id, "status": "paid"}, {"_id": 0}).to_list(20):
         try:
             if p["provider"] == "razorpay" and p.get("provider_payment_id"):
-                pay.razorpay_refund(p["provider_payment_id"], p["amount"])
+                pay.razorpay_refund(p["provider_payment_id"], p["amount"], p.get("rzp_mode", "test"))
             elif p["provider"] == "stripe" and p.get("provider_payment_intent"):
                 import stripe
                 stripe.api_key = pay.STRIPE_API_KEY
@@ -404,7 +441,10 @@ async def _mark_paid(p, provider_ref: dict):
 
 @router.get("/payments/config")
 async def payment_config():
-    return {**pay.public_config(), "demo_enabled": PAYMENT_DEMO_ENABLED}
+    eff = await effective_payment()
+    return {"provider": eff["provider"], "razorpay_key_id": eff["razorpay_key_id"],
+            "payment_mode": eff["payment_mode"], "demo_enabled": eff["demo_enabled"],
+            "checkout_available": eff["checkout_available"]}
 
 
 @router.post("/payments/create")
@@ -425,18 +465,19 @@ async def create_payment(body: PaymentCreate, request: Request, user=Depends(get
     if charge <= 0:
         raise HTTPException(400, "Nothing to charge")
     commission = round(amount * b["commission_percent"] / 100, 2)
-    provider = pay.active_provider()
-    if provider == "none" and not PAYMENT_DEMO_ENABLED:
-        raise HTTPException(503, "Payments not configured. Add RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET or STRIPE_API_KEY.")
+    eff = await effective_payment()
+    provider = eff["provider"]
+    if provider == "none":
+        raise HTTPException(503, "Online payment is temporarily unavailable")
     p = {"id": new_id(), "booking_id": b["id"], "booking_code": b["code"], "user_id": user["id"], "vendor_id": b["vendor_id"],
          "type": body.type if b["paid_amount"] == 0 else "balance", "amount": charge, "gross_amount": amount, "discount": discount,
          "coupon_code": coupon["code"] if coupon else None, "commission": commission, "vendor_amount": round(amount - commission, 2),
-         "currency": "INR", "provider": provider if provider != "none" else "demo", "status": "created", "created_at": now_iso()}
+         "currency": "INR", "provider": provider, "rzp_mode": eff["rzp_mode"], "status": "created", "created_at": now_iso()}
     resp = {"payment_id": p["id"], "amount": charge, "provider": p["provider"]}
     if provider == "razorpay":
-        order = pay.razorpay_create_order(charge, f"mmep_{p['id'][:8]}", {"booking": b["code"], "payment_id": p["id"]})
+        order = pay.razorpay_create_order(charge, f"mmep_{p['id'][:8]}", {"booking": b["code"], "payment_id": p["id"]}, eff["rzp_mode"])
         p["provider_order_id"] = order["id"]
-        resp.update({"razorpay": {"key": pay.RZP_KEY_ID, "order_id": order["id"], "amount": order["amount"], "currency": "INR",
+        resp.update({"razorpay": {"key": eff["razorpay_key_id"], "order_id": order["id"], "amount": order["amount"], "currency": "INR",
                                   "name": "MakeMyEventPro", "description": f"{b['vendor_name']} · {b['code']}",
                                   "prefill": {"name": user.get("name"), "contact": user.get("phone"), "email": user.get("email") or ""}}})
     elif provider == "stripe":
@@ -455,7 +496,7 @@ async def razorpay_verify(body: RazorpayVerify, user=Depends(get_current_user)):
     p = await db.payments.find_one({"id": body.payment_id, "user_id": user["id"]}, {"_id": 0})
     if not p or p.get("provider_order_id") != body.razorpay_order_id:
         raise HTTPException(404, "Payment not found")
-    if not pay.razorpay_verify_signature(body.razorpay_order_id, body.razorpay_payment_id, body.razorpay_signature):
+    if not pay.razorpay_verify_signature(body.razorpay_order_id, body.razorpay_payment_id, body.razorpay_signature, p.get("rzp_mode", "test")):
         await db.payments.update_one({"id": p["id"]}, {"$set": {"status": "failed", "failed_reason": "signature"}})
         raise HTTPException(400, "Signature verification failed")
     await _mark_paid(p, {"provider_payment_id": body.razorpay_payment_id})
@@ -511,8 +552,9 @@ async def stripe_webhook(request: Request):
 
 @router.post("/payments/{payment_id}/demo-confirm")
 async def demo_confirm(payment_id: str, user=Depends(get_current_user)):
-    """DEV ONLY (PAYMENT_DEMO_ENABLED). Simulates a successful gateway callback."""
-    if not PAYMENT_DEMO_ENABLED:
+    """Simulates a successful gateway callback for the Demo payment mode."""
+    eff = await effective_payment()
+    if not eff["demo_enabled"]:
         raise HTTPException(404, "Not found")
     p = await db.payments.find_one({"id": payment_id, "user_id": user["id"]}, {"_id": 0})
     if not p:
