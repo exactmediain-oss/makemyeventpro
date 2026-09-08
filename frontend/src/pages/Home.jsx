@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronRight, TrendingUp, Sparkles, Award, Clock, ShieldCheck, Search, MessageSquare, CreditCard, Star } from "lucide-react";
+import { ChevronRight, TrendingUp, Sparkles, Award, Clock, ShieldCheck, Search, MessageSquare, CreditCard, Star, Store } from "lucide-react";
 import Layout from "@/components/Layout";
 import CategoryBar from "@/components/CategoryBar";
 import HeroCarousel from "@/components/HeroCarousel";
@@ -124,6 +124,25 @@ export default function Home() {
           <Row title="Premium Vendors" icon={Star} vendors={premium} onEnquire={setEnquireVendor} testid="row-premium" />
         </>
       )}
+
+      {/* Join as Vendor CTA */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-testid="home-vendor-cta">
+        <div className="relative overflow-hidden rounded-3xl bg-slate-950 text-white p-8 sm:p-12">
+          <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-purple-600/30 blur-3xl" />
+          <div className="absolute -left-10 -bottom-10 h-48 w-48 rounded-full bg-pink-500/30 blur-3xl" />
+          <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="max-w-xl">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-xs font-semibold mb-3"><Store className="h-3.5 w-3.5" /> For event professionals</span>
+              <h2 className="font-display font-extrabold text-2xl sm:text-3xl leading-tight">Grow your event business with MakeMyEventPro</h2>
+              <p className="text-white/75 mt-2 text-sm sm:text-base">Join thousands of customers looking for trusted vendors. List your business, get quality leads and manage bookings in one place.</p>
+            </div>
+            <button data-testid="home-join-vendor-btn" onClick={() => navigate("/vendor/join")}
+              className="shrink-0 inline-flex items-center gap-2 px-7 h-12 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 font-semibold hover:opacity-90 transition-opacity">
+              Join as Vendor <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* How it works */}
       <section className="bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500 mt-8" data-testid="how-it-works">

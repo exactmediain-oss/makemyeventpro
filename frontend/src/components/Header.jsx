@@ -110,7 +110,7 @@ export default function Header() {
                   <Item id="menu-bookings" icon={CalendarCheck} label="My Bookings" path="/bookings" />
                   <Item id="menu-my-event" icon={CalendarHeart} label="My Event Planner" path="/my-event" />
                   <Item id="menu-favorites" icon={Heart} label="My Favorites" path="/favorites" />
-                  {user.role === "customer" && <Item id="menu-become-vendor" icon={Store} label="List your business" path="/vendor/onboarding" cls="text-purple-600" />}
+                  {user.role === "customer" && <Item id="menu-become-vendor" icon={Store} label="Join as Vendor" path="/vendor/join" cls="text-purple-600" />}
                   {["vendor", "vendor_staff"].includes(user.role) && <Item id="menu-vendor-dashboard" icon={LayoutDashboard} label="Vendor Dashboard" path="/vendor" />}
                   {ADMIN.includes(user.role) && <Item id="menu-admin-dashboard" icon={Shield} label="Admin Console" path="/admin" />}
                   <DropdownMenuSeparator />
@@ -119,7 +119,7 @@ export default function Header() {
               </DropdownMenu>
             ) : (
               <>
-                <Button data-testid="header-vendor-cta" variant="ghost" className={`rounded-xl hidden lg:flex font-semibold ${onDark ? "text-white " + hoverBg : "text-purple-600"}`} onClick={() => navigate("/vendor/onboarding")}><Store className="h-4 w-4 mr-1.5" /> List your business</Button>
+                <Button data-testid="header-vendor-cta" variant="ghost" className={`rounded-xl hidden sm:flex font-semibold ${onDark ? "text-white " + hoverBg : "text-purple-600"}`} onClick={() => navigate("/vendor/join")}><Store className="h-4 w-4 mr-1.5" /> Join as Vendor</Button>
                 <Button data-testid="header-login-btn" onClick={() => setAuthOpen(true)} className={`rounded-xl font-semibold hover:opacity-90 ${onDark ? "bg-white hover:bg-white" : "bg-gradient-to-r from-purple-600 to-pink-500"}`} style={onDark ? { color: theme.accent } : {}}>Login</Button>
               </>
             )}

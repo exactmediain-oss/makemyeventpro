@@ -18,6 +18,7 @@ import PaymentSuccess from "@/pages/PaymentSuccess";
 import Profile from "@/pages/Profile";
 import VendorDashboard from "@/pages/vendor/VendorDashboard";
 import VendorOnboarding from "@/pages/vendor/VendorOnboarding";
+import VendorLanding from "@/pages/vendor/VendorLanding";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 
 function App() {
@@ -41,6 +42,7 @@ function App() {
               <Route path="/payment/success" element={<PaymentSuccess />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/vendor" element={<VendorDashboard />} />
+              <Route path="/vendor/join" element={<VendorLanding />} />
               <Route path="/vendor/onboarding" element={<VendorOnboarding />} />
               <Route path="/vendor/bookings" element={<VendorDashboard />} />
               <Route path="/vendor/leads/:id" element={<EnquiryDetail vendorView />} />
