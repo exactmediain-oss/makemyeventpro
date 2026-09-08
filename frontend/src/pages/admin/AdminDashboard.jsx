@@ -11,6 +11,7 @@ import FieldBuilderTab from "./FieldBuilderTab";
 import LocationsTab from "./LocationsTab";
 import CategoryManagerTab from "./CategoryManagerTab";
 import { BannersTab, CustomersTab, BookingsTab, PaymentsTab, CouponsTab, ReviewsTab, PlansTab, PagesTab, SettingsTab, PaymentSettingsTab, NotifyTab, AuditTab } from "./tabs";
+import AuthDialog from "@/components/AuthDialog";
 
 const TABS = [["kyc", "KYC Queue"], ["vendors", "Vendors"], ["fields", "Field Builder"], ["categories", "Categories"], ["locations", "Locations"], ["customers", "Customers"],
   ["bookings", "Bookings"], ["payments", "Payments & Payouts"], ["paysettings", "Payment Settings"], ["coupons", "Coupons & Offers"], ["reviews", "Reviews"], ["banners", "Banners & Ads"], ["plans", "Vendor Plans"], ["pages", "CMS Pages"], ["notify", "Notifications"], ["settings", "Settings"], ["audit", "Audit Logs"]];
@@ -28,7 +29,7 @@ export default function AdminDashboard() {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if (!user || err) return (
-    <div className="min-h-screen flex items-center justify-center px-4 text-center"><div>
+    <div className="min-h-screen flex items-center justify-center px-4 text-center"><AuthDialog /><div>
       <Shield className="h-12 w-12 mx-auto text-purple-500 mb-4" /><h2 className="font-display font-bold text-xl">Admin access required</h2>
       <div className="flex gap-2 justify-center mt-5"><Button onClick={() => setAuthOpen(true)} className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-500">Login</Button><Button variant="outline" onClick={() => navigate("/")} className="rounded-xl">Marketplace</Button></div>
     </div></div>);

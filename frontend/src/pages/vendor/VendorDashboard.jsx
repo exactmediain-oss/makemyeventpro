@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { BRAND_LOGO, formatINR } from "@/lib/constants";
 import { toast } from "sonner";
+import AuthDialog from "@/components/AuthDialog";
 
 export default function VendorDashboard() {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ export default function VendorDashboard() {
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if (!user || noProfile) return (
     <div className="min-h-screen flex items-center justify-center px-4 text-center">
+      <AuthDialog />
       <div>
         <Building2 className="h-12 w-12 mx-auto text-purple-500 mb-4" />
         <h2 className="font-display font-bold text-xl">{user ? "List your business on MakeMyEventPro" : "Vendor access required"}</h2>

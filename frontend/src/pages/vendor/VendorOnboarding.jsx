@@ -17,6 +17,7 @@ import { useLocationCtx } from "@/context/LocationContext";
 import api from "@/lib/api";
 import { BRAND_LOGO } from "@/lib/constants";
 import { toast } from "sonner";
+import AuthDialog from "@/components/AuthDialog";
 
 const STEPS = [
   { key: "business", title: "Business" }, { key: "contact", title: "Contact" }, { key: "category", title: "Category" },
@@ -78,7 +79,7 @@ export default function VendorOnboarding() {
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
-  if (!user) return <div className="min-h-screen flex items-center justify-center text-center px-4"><div><Building2 className="h-12 w-12 mx-auto text-purple-500 mb-3" /><h2 className="font-display font-bold text-xl">Login to register your business</h2><Button className="mt-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500" onClick={() => setAuthOpen(true)}>Login with OTP</Button></div></div>;
+  if (!user) return <div className="min-h-screen flex items-center justify-center text-center px-4"><AuthDialog /><div><Building2 className="h-12 w-12 mx-auto text-purple-500 mb-3" /><h2 className="font-display font-bold text-xl">Login to register your business</h2><Button className="mt-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500" onClick={() => setAuthOpen(true)}>Login with OTP</Button></div></div>;
 
   const cls = "rounded-xl";
   const content = [
