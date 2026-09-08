@@ -156,9 +156,66 @@ async def vendor_update(body: OnboardingDraft, user=Depends(require_roles(*VENDO
                "amenities", "event_types", "starting_price", "price_unit", "custom_fields", "service_areas",
                "business_phone", "email", "subcategories", "years", "blocked_dates", "working_days"}
     upd = {k: val for k, val in body.model_dump().items() if val is not None and k in allowed}
+    if "gallery" in upd:
+        ent = _entitlements(v)
+        if ent["max_gallery"] is not None and len(upd["gallery"]) > ent["max_gallery"]:
+            raise HTTPException(400, f"Your {ent['plan']} plan allows up to {ent['max_gallery']} gallery images. Upgrade your plan to add more.")
     upd["updated_at"] = now_iso()
     await db.vendors.update_one({"id": v["id"]}, {"$set": upd})
     return clean(await db.vendors.find_one({"id": v["id"]}, {"_id": 0}))
+
+
+# ----------------------------- subscriptions (reuses plans collection + payment records) -----------------------------
+def _active_sub(v):
+    s = v.get("subscription")
+    if not s or s.get("status") != "active":
+        return None
+    if s.get("expiry") and s["expiry"] < now_iso():
+        return None
+    return s
+
+
+def _entitlements(v):
+    s = _active_sub(v)
+    if not s:
+        return {"plan": "Free", "max_gallery": 8, "lead_limit": 25, "featured": False, "analytics": False, "verified_badge": False}
+    return {"plan": s.get("plan_name"), "max_gallery": s.get("max_gallery") or 30, "lead_limit": s.get("lead_limit"),
+            "featured": bool(s.get("featured_slots")), "analytics": True, "verified_badge": True}
+
+
+@router.get("/subscription")
+async def vendor_subscription(user=Depends(require_roles(*VENDOR_ROLES))):
+    v = await get_vendor_for_user(user)
+    plans = await db.plans.find({}, {"_id": 0}).sort("order", 1).to_list(50)
+    raw = v.get("subscription")
+    expired = bool(raw and raw.get("status") == "active" and raw.get("expiry") and raw["expiry"] < now_iso())
+    return {"current": _active_sub(v), "expired": expired, "entitlements": _entitlements(v),
+            "history": v.get("subscription_history", []), "plans": plans,
+            "payments": await db.payments.find({"vendor_id": v["id"], "type": "subscription"}, {"_id": 0}).sort("created_at", -1).to_list(50)}
+
+
+@router.post("/subscription/subscribe")
+async def vendor_subscribe(body: dict, user=Depends(require_roles(*VENDOR_ROLES))):
+    """Activates a plan. Uses the existing payment records; in Demo mode activation is immediate.
+    Razorpay-gateway subscription checkout is backend-ready but pending gateway wiring."""
+    from datetime import datetime, timezone, timedelta
+    v = await get_vendor_for_user(user)
+    plan = await db.plans.find_one({"slug": body.get("plan_slug")}, {"_id": 0})
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+    start = datetime.now(timezone.utc)
+    expiry = start + timedelta(days=int(plan.get("validity_days") or 30))
+    sub = {"plan_slug": plan["slug"], "plan_name": plan["name"], "features": plan.get("features", []),
+           "lead_limit": plan.get("lead_limit"), "featured_slots": plan.get("featured_slots", 0),
+           "max_gallery": plan.get("max_gallery") or 30, "price": plan.get("price_monthly", 0),
+           "start": start.isoformat(), "expiry": expiry.isoformat(), "status": "active", "provider": "demo"}
+    await db.vendors.update_one({"id": v["id"]}, {"$set": {"subscription": sub, "featured": bool(plan.get("featured_slots"))},
+                                                  "$push": {"subscription_history": {**sub, "at": now_iso()}}})
+    await db.payments.insert_one({"id": new_id(), "type": "subscription", "vendor_id": v["id"], "amount": plan.get("price_monthly", 0),
+                                  "provider": "demo", "status": "paid", "plan_slug": plan["slug"], "created_at": now_iso(), "paid_at": now_iso()})
+    await audit(user, "vendor.subscribe", plan["slug"], {"plan": plan["name"], "expiry": sub["expiry"]})
+    await notify(user["id"], "Subscription active", f"You're now on the {plan['name']} plan until {expiry.date()}.", "/vendor", "subscription")
+    return {"ok": True, "subscription": sub}
 
 
 @router.get("/stats")

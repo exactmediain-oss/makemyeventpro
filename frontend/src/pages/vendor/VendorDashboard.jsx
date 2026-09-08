@@ -32,6 +32,9 @@ export default function VendorDashboard() {
   };
   const respond = async (r, text) => { await api.post(`/reviews/${r.id}/respond`, { response: text }); toast.success("Response posted"); load(); };
   const [newDate, setNewDate] = useState("");
+  const [sub, setSub] = useState(null);
+  useEffect(() => { if (user) api.get("/vendor/subscription").then((r) => setSub(r.data)).catch(() => {}); }, [user]);
+  const subscribe = async (slug) => { try { await api.post("/vendor/subscription/subscribe", { plan_slug: slug }); const r = await api.get("/vendor/subscription"); setSub(r.data); toast.success("Subscription activated"); } catch (e) { toast.error(e.response?.data?.detail || "Could not subscribe"); } };
   const saveBlocked = async (dates) => { await api.put("/vendor/me", { blocked_dates: dates }); setProfile((p) => ({ ...p, blocked_dates: dates })); };
   const addBlocked = async () => { if (!newDate) return; const cur = profile.blocked_dates || []; if (cur.includes(newDate)) { toast.error("Date already blocked"); return; } try { await saveBlocked([...cur, newDate].sort()); setNewDate(""); toast.success("Date blocked"); } catch (e) { toast.error("Could not block date"); } };
   const removeBlocked = async (d) => { try { await saveBlocked((profile.blocked_dates || []).filter((x) => x !== d)); toast.success("Date unblocked"); } catch (e) { toast.error("Could not unblock"); } };
@@ -101,6 +104,7 @@ export default function VendorDashboard() {
             <TabsTrigger value="bookings" data-testid="vendor-tab-bookings" className="rounded-lg">Bookings ({bookings.length})</TabsTrigger>
             <TabsTrigger value="payments" data-testid="vendor-tab-payments" className="rounded-lg">Payments</TabsTrigger>
             <TabsTrigger value="availability" data-testid="vendor-tab-availability" className="rounded-lg">Availability</TabsTrigger>
+            <TabsTrigger value="subscription" data-testid="vendor-tab-subscription" className="rounded-lg">Subscription</TabsTrigger>
             <TabsTrigger value="reviews" data-testid="vendor-tab-reviews" className="rounded-lg">Reviews</TabsTrigger>
           </TabsList>
 
@@ -149,6 +153,26 @@ export default function VendorDashboard() {
               </div>
               <div className="flex flex-wrap gap-2">{(profile.blocked_dates || []).length === 0 ? <span className="text-sm text-muted-foreground">No blocked dates.</span> : (profile.blocked_dates || []).map((d) => (
                 <span key={d} data-testid={`blocked-${d}`} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-sm">{d}<button data-testid={`unblock-${d}`} onClick={() => removeBlocked(d)} className="text-red-500 hover:text-red-600 font-bold">×</button></span>))}</div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="subscription" className="pt-5 space-y-4" data-testid="vendor-subscription">
+            <div className="rounded-2xl border border-border bg-card p-5">
+              {sub?.current ? (
+                <div><div className="flex items-center gap-2"><BadgeCheck className="h-5 w-5 text-emerald-600" /><span className="font-display font-bold text-lg">{sub.current.plan_name}</span><span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">Active</span></div>
+                  <p className="text-sm text-muted-foreground mt-1">Valid until {new Date(sub.current.expiry).toLocaleDateString("en-IN")} · Gallery up to {sub.entitlements.max_gallery} · Leads {sub.current.lead_limit ?? "∞"}</p></div>
+              ) : <div><div className="font-display font-bold">Free plan</div><p className="text-sm text-muted-foreground">{sub?.expired ? "Your subscription expired — renew to restore premium features." : "Upgrade to unlock more gallery images, leads, featured placement and analytics."}</p></div>}
+            </div>
+            <div className="grid sm:grid-cols-3 gap-4">
+              {(sub?.plans || []).map((p) => (
+                <div key={p.slug} data-testid={`plan-${p.slug}`} className="rounded-2xl border border-border bg-card p-4">
+                  <div className="font-display font-bold text-lg">{p.name}</div>
+                  <div className="text-2xl font-extrabold text-purple-600">{formatINR(p.price_monthly)}<span className="text-xs text-muted-foreground font-normal">/mo</span></div>
+                  <ul className="text-sm mt-2 space-y-1">{(p.features || []).map((x) => <li key={x}>• {x}</li>)}</ul>
+                  <div className="text-xs text-muted-foreground mt-2">Leads {p.lead_limit ?? "∞"} · Featured slots {p.featured_slots}</div>
+                  <Button data-testid={`subscribe-${p.slug}`} className="w-full rounded-xl mt-3 bg-gradient-to-r from-purple-600 to-pink-500" onClick={() => subscribe(p.slug)}>{sub?.current?.plan_slug === p.slug ? "Renew" : "Subscribe"}</Button>
+                </div>))}
+              {(sub?.plans || []).length === 0 && <p className="text-sm text-muted-foreground">No plans available yet.</p>}
             </div>
           </TabsContent>
 

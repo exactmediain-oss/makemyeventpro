@@ -74,3 +74,12 @@ Bugfix: "Login with OTP" did nothing on /vendor/onboarding, /vendor, /admin beca
 2) Admin Integrations tab: GET /api/admin/integrations-status (any admin) reports Configured/Not-Configured for Firebase/Razorpay test+live/Google Maps/WhatsApp(+click-to-chat)/Email/SMS with the exact .env location for each credential (frontend-safe vs backend-secret). No secret VALUES ever returned (verified). New IntegrationsTab in admin console.
 3) Vendor blocked dates + SERVER-SIDE double-booking prevention: added blocked_dates/working_days to OnboardingDraft + PUT /vendor/me whitelist. quote_action now rejects (HTTP 400) accepting a quote when event_date is in vendor.blocked_dates OR a confirmed/in_progress booking already exists for that vendor+date. Vendor dashboard → Availability tab to block/unblock dates. Verified end-to-end (blocked date accept → 400).
 Files: backend payments.py, routes_admin.py (+import os), routes_vendor.py, routes_transactions.py; frontend pages/admin/tabs.jsx, pages/admin/AdminDashboard.jsx, pages/vendor/VendorDashboard.jsx. No .env/DB destructive changes.
+
+## 2026-06 — Vendor subscriptions + server-side entitlements + expiry (Priority 1)
+Reused existing db.plans (admin PlansTab) + payment records. Added to routes_vendor.py:
+- GET /api/vendor/subscription → {current, expired, entitlements, history, plans, payments}
+- POST /api/vendor/subscription/subscribe {plan_slug} → activates plan (Demo mode: immediate), sets vendor.subscription {plan,features,lead_limit,featured_slots,max_gallery,start,expiry(+validity_days/30d),status:active}, pushes subscription_history, inserts a type=subscription payment record, sets featured, audited + notified. (Razorpay-gateway subscription checkout is backend-ready but pending gateway wiring — Demo activation works now.)
+- Helpers _active_sub (expiry-on-read → expired loses entitlements) and _entitlements (Free: gallery 8/leads 25; paid: plan limits + analytics/verified/featured).
+- SERVER-SIDE enforcement: PUT /vendor/me rejects gallery beyond entitlement (Free 8 → 400; Pro 30 → ok). Verified via curl.
+Frontend: VendorDashboard → Subscription tab (current plan/expiry/entitlements + plan cards + Subscribe/Renew). Vendor never sees other vendors' data (role-scoped by get_vendor_for_user).
+Admin analytics (Priority 2) and vendor analytics (Priority 3) already exist as /api/admin/stats and /api/vendor/stats (real DB aggregates) — preserved, not rebuilt. Payment mode remains DEMO.
